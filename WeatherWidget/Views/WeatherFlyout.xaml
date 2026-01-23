@@ -1,0 +1,305 @@
+﻿<Window x:Class="WeatherWidget.Views.WeatherFlyout"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Width="540"
+        SizeToContent="Height"
+        WindowStyle="None"
+        AllowsTransparency="False"
+        Background="#202020"
+        Topmost="True"
+        Deactivated="Window_Deactivated"
+        Loaded="Window_Loaded"
+        SizeChanged="Window_SizeChanged">
+
+    <Window.Resources>
+        <SolidColorBrush x:Key="PrimaryTextBrush" Color="#EDEDED" />
+        <SolidColorBrush x:Key="SecondaryTextBrush" Color="#EDEDED" />
+        <SolidColorBrush x:Key="CardBackgroundBrush" Color="#2A2A2A" />
+
+        <Style x:Key="IconButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="8"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                Padding="{TemplateBinding Padding}"
+                                CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#40FFFFFF"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="#20FFFFFF"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
+    <Border x:Name="MainBorder" BorderThickness="0" Padding="20">
+        <Border.RenderTransform>
+            <TranslateTransform x:Name="SlideTransform" Y="40" />
+        </Border.RenderTransform>
+
+        <Grid x:Name="RootGrid">
+            <!-- Weather View -->
+            <StackPanel x:Name="WeatherView" Visibility="Visible">
+                <!-- Top Right Button Stack -->
+                <Grid Margin="0,0,0,0">
+                    <StackPanel Orientation="Horizontal"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Top">
+
+                        <Button Click="OpenSettings_Click"
+                                Style="{StaticResource IconButtonStyle}"
+                                ToolTip="Settings">
+                            <TextBlock Text="&#xE713;" 
+                                       FontFamily="Segoe Fluent Icons" 
+                                       FontSize="16"
+                                       Foreground="{DynamicResource PrimaryTextBrush}"
+                                       Opacity="0.7" />
+                        </Button>
+
+                        <Button Click="OpenWeatherApp_Click"
+                                Style="{StaticResource IconButtonStyle}"
+                                Margin="4,0,0,0"
+                                ToolTip="Open Weather App">
+                            <TextBlock Text="&#xE8A7;" 
+                                       FontFamily="Segoe Fluent Icons" 
+                                       FontSize="16"
+                                       Foreground="{DynamicResource PrimaryTextBrush}"
+                                       Opacity="0.7" />
+                        </Button>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Current Weather Header -->
+                <Grid Margin="0,12,0,20">
+                    <StackPanel Orientation="Horizontal">
+                        <Image x:Name="LargeIcon"
+                               Width="64"
+                               Height="64"
+                               Margin="0,0,16,0"
+                               VerticalAlignment="Center"
+                               RenderOptions.BitmapScalingMode="HighQuality" />
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock x:Name="CityText"
+                                       FontSize="16"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource PrimaryTextBrush}"
+                                       Margin="0,0,0,4" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock x:Name="MainTemp"
+                                           Grid.Column="0"
+                                           FontSize="40"
+                                           FontWeight="SemiBold"
+                                           Foreground="{DynamicResource PrimaryTextBrush}" />
+
+                                <StackPanel Grid.Column="1"
+                                            VerticalAlignment="Center"
+                                            Margin="16,0,0,0">
+                                    <TextBlock x:Name="ConditionFull"
+                                               FontSize="14"
+                                               Foreground="{DynamicResource PrimaryTextBrush}"
+                                               Margin="0,0,0,4" />
+                                    <TextBlock x:Name="FeelsLikeText"
+                                               FontSize="12"
+                                               Foreground="{DynamicResource SecondaryTextBrush}"
+                                               Opacity="0.7" />
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Today's Details Grid -->
+                <Border Background="{DynamicResource CardBackgroundBrush}"
+                        CornerRadius="8"
+                        Padding="16"
+                        Margin="0,0,0,16">
+                    <UniformGrid Columns="4" Rows="1">
+                        <!-- High/Low -->
+                        <StackPanel HorizontalAlignment="Center">
+                            <TextBlock Text="High / Low"
+                                       FontSize="11"
+                                       Foreground="{DynamicResource SecondaryTextBrush}"
+                                       Opacity="0.7"
+                                       Margin="0,0,0,8"
+                                       HorizontalAlignment="Center" />
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <Image Source="/Assets/PNG/ui-thermometer.png"
+                                       Width="16"
+                                       Height="16"
+                                       Margin="0,0,8,0"
+                                       VerticalAlignment="Center"
+                                       RenderOptions.BitmapScalingMode="HighQuality" />
+                                <TextBlock x:Name="HighLowTempText"
+                                           FontSize="14"
+                                           FontWeight="Medium"
+                                           Foreground="{DynamicResource PrimaryTextBrush}" />
+                            </StackPanel>
+                        </StackPanel>
+
+                        <!-- Precipitation -->
+                        <StackPanel HorizontalAlignment="Center">
+                            <TextBlock Text="Precipitation"
+                                       FontSize="11"
+                                       Foreground="{DynamicResource SecondaryTextBrush}"
+                                       Opacity="0.7"
+                                       Margin="0,0,0,8"
+                                       HorizontalAlignment="Center" />
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <Image Source="/Assets/PNG/ui-rain.png"
+                                       Width="16"
+                                       Height="16"
+                                       Margin="0,0,8,0"
+                                       VerticalAlignment="Center"
+                                       RenderOptions.BitmapScalingMode="HighQuality" />
+                                <TextBlock x:Name="PrecipitationText"
+                                           FontSize="14"
+                                           FontWeight="Medium"
+                                           Foreground="{DynamicResource PrimaryTextBrush}" />
+                            </StackPanel>
+                        </StackPanel>
+
+                        <!-- Humidity -->
+                        <StackPanel HorizontalAlignment="Center">
+                            <TextBlock Text="Humidity"
+                                       FontSize="11"
+                                       Foreground="{DynamicResource SecondaryTextBrush}"
+                                       Opacity="0.7"
+                                       Margin="0,0,0,8"
+                                       HorizontalAlignment="Center" />
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <Image Source="/Assets/PNG/ui-humidity.png"
+                                       Width="16"
+                                       Height="16"
+                                       Margin="0,0,8,0"
+                                       VerticalAlignment="Center"
+                                       RenderOptions.BitmapScalingMode="HighQuality" />
+                                <TextBlock x:Name="HumidityText"
+                                           FontSize="14"
+                                           FontWeight="Medium"
+                                           Foreground="{DynamicResource PrimaryTextBrush}" />
+                            </StackPanel>
+                        </StackPanel>
+
+                        <!-- Wind -->
+                        <StackPanel HorizontalAlignment="Center">
+                            <TextBlock Text="Wind"
+                                       FontSize="11"
+                                       Foreground="{DynamicResource SecondaryTextBrush}"
+                                       Opacity="0.7"
+                                       Margin="0,0,0,8"
+                                       HorizontalAlignment="Center" />
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <Image Source="/Assets/PNG/ui-wind.png"
+                                       Width="16"
+                                       Height="16"
+                                       Margin="0,0,8,0"
+                                       VerticalAlignment="Center"
+                                       RenderOptions.BitmapScalingMode="HighQuality" />
+                                <TextBlock x:Name="WindText"
+                                           FontSize="14"
+                                           FontWeight="Medium"
+                                           Foreground="{DynamicResource PrimaryTextBrush}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </UniformGrid>
+                </Border>
+
+                <!-- 5-Day Forecast -->
+                <ItemsControl x:Name="DailyForecastList">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <UniformGrid Rows="1" Columns="5" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Background="{DynamicResource CardBackgroundBrush}"
+                                    CornerRadius="8"
+                                    Padding="12"
+                                    Margin="0,0,8,0">
+                                <StackPanel HorizontalAlignment="Center">
+                                    <TextBlock Text="{Binding TimeLabel}"
+                                               HorizontalAlignment="Center"
+                                               Foreground="{DynamicResource PrimaryTextBrush}"
+                                               FontSize="13"
+                                               FontWeight="SemiBold"
+                                               Margin="0,0,0,12" />
+
+                                    <Image Source="{Binding IconPath}"
+                                           Width="40"
+                                           Height="40"
+                                           HorizontalAlignment="Center"
+                                           Margin="0,0,0,12"
+                                           RenderOptions.BitmapScalingMode="HighQuality" />
+
+                                    <TextBlock Text="{Binding TempLabel}"
+                                               HorizontalAlignment="Center"
+                                               Foreground="{DynamicResource PrimaryTextBrush}"
+                                               FontSize="12"
+                                               FontWeight="Medium"
+                                               Margin="0,0,0,12"
+                                               TextWrapping="Wrap"
+                                               TextAlignment="Center" />
+
+                                    <StackPanel HorizontalAlignment="Center">
+                                        <StackPanel Orientation="Horizontal" 
+                                                    HorizontalAlignment="Center"
+                                                    Margin="0,0,0,6">
+                                            <Image Source="/Assets/PNG/ui-rain.png"
+                                                   Width="12"
+                                                   Height="12"
+                                                   VerticalAlignment="Center"
+                                                   Margin="0,0,6,0"
+                                                   RenderOptions.BitmapScalingMode="HighQuality" />
+                                            <TextBlock Text="{Binding Humidity}"
+                                                       FontSize="11"
+                                                       Foreground="{DynamicResource SecondaryTextBrush}"
+                                                       Opacity="0.7"
+                                                       VerticalAlignment="Center" />
+                                        </StackPanel>
+
+                                        <StackPanel Orientation="Horizontal"
+                                                    HorizontalAlignment="Center">
+                                            <Image Source="/Assets/PNG/ui-wind.png"
+                                                   Width="12"
+                                                   Height="12"
+                                                   VerticalAlignment="Center"
+                                                   Margin="0,0,6,0"
+                                                   RenderOptions.BitmapScalingMode="HighQuality" />
+                                            <TextBlock Text="{Binding Wind}"
+                                                       FontSize="11"
+                                                       Foreground="{DynamicResource SecondaryTextBrush}"
+                                                       Opacity="0.7"
+                                                       VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+
+            <!-- Settings View -->
+            <StackPanel x:Name="SettingsView" Visibility="Collapsed">
+                <Grid x:Name="SettingsContent"/>
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>

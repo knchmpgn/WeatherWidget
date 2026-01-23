@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 48 48">
+  <!-- Generator: Adobe Illustrator 30.1.0, SVG Export Plug-In . SVG Version: 2.1.1 Build 136)  -->
+  <defs>
+    <style>
+      .st0 {
+        fill: url(#linear-gradient1);
+      }
+
+      .st1 {
+        fill: url(#radial-gradient);
+      }
+
+      .st2 {
+        fill: url(#linear-gradient);
+      }
+    </style>
+    <radialGradient id="radial-gradient" cx="23.9" cy="7.6" fx="23.9" fy="7.6" r="20.4" gradientTransform="translate(0 50) scale(1 -1)" gradientUnits="userSpaceOnUse">
+      <stop offset=".8" stop-color="#ffed54"/>
+      <stop offset=".8" stop-color="#ffe649"/>
+      <stop offset=".9" stop-color="#ffd22d"/>
+      <stop offset="1" stop-color="#ffb300"/>
+    </radialGradient>
+    <linearGradient id="linear-gradient" x1="13.7" y1="21.6" x2="40.5" y2="-5.2" gradientTransform="translate(0 50) scale(1 -1)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fed100"/>
+      <stop offset="1" stop-color="#e36001"/>
+    </linearGradient>
+    <linearGradient id="linear-gradient1" x1="18" y1="40.2" x2="30" y2="40.2" gradientTransform="translate(0 50) scale(1 -1)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#30b44a"/>
+      <stop offset="1" stop-color="#0c8040"/>
+    </linearGradient>
+  </defs>
+  <path class="st1" d="M24,21l1.4,1.4c.9.9,2.3,1.1,3.4.5l1.7-.9.9,1.8c.6,1.2,1.8,1.8,3.1,1.6l1.9-.3.3,1.9c.2,1.3,1.2,2.3,2.4,2.4l1.9.3-.3,1.9c-.2,1.3.4,2.5,1.6,3.1l1.8.9-.9,1.7c-.6,1.1-.4,2.5.5,3.4l1.4,1.4H3l1.4-1.4c.9-.9,1.1-2.3.5-3.4l-.9-1.7,1.8-.9c1.2-.6,1.8-1.8,1.6-3.1l-.3-1.9,1.9-.3c1.3-.2,2.3-1.2,2.4-2.4l.3-1.9,1.9.3c1.3.2,2.5-.4,3.1-1.6l.9-1.8,1.7.9c1.1.6,2.5.4,3.4-.5l1.4-1.4Z"/>
+  <path class="st2" d="M24,26c-8.8,0-16,7.2-16,16h32c0-8.8-7.2-16-16-16Z"/>
+  <path class="st0" d="M18.6,9h3.4v7c0,.6.4,1,1,1h2c.6,0,1-.4,1-1v-7h3.4c.5,0,.8-.7.4-1l-5-5c-.5-.5-1.2-.5-1.7,0l-5,5c-.4.4-.1,1,.4,1Z"/>
+</svg>
