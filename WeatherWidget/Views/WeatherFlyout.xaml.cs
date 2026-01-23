@@ -33,7 +33,6 @@ namespace WeatherWidget.Views
         private bool _isDarkMode;
         private bool _allowDeactivate = false;
         private readonly Rect _anchorRect;
-        private bool _showingDaily = true;
         private bool _settingsVisible = false;
         private double _initialBottom;
         private bool _isDay = true;
@@ -53,9 +52,7 @@ namespace WeatherWidget.Views
             _data = data;
             _loc = loc;
 
-            // Determine if it's day or night from sunrise/sunset
             DetermineTimeOfDay();
-
             DetectTaskbarTheme();
             PopulateWeatherData(loc);
         }
@@ -72,7 +69,6 @@ namespace WeatherWidget.Views
             }
             catch
             {
-                // Default to day if parsing fails
                 _isDay = true;
             }
         }
@@ -96,23 +92,6 @@ namespace WeatherWidget.Views
             catch { }
 
             DailyForecastList.ItemsSource = _data.Daily;
-            HourlyForecastList.ItemsSource = _data.Hourly;
-        }
-
-        private void ToggleForecast_Click(object sender, RoutedEventArgs e)
-        {
-            _showingDaily = !_showingDaily;
-
-            if (_showingDaily)
-            {
-                DailyForecastList.Visibility = Visibility.Visible;
-                HourlyForecastList.Visibility = Visibility.Collapsed;
-            }
-            else
-            {
-                DailyForecastList.Visibility = Visibility.Collapsed;
-                HourlyForecastList.Visibility = Visibility.Visible;
-            }
         }
 
         private void DetectTaskbarTheme()
@@ -213,7 +192,6 @@ namespace WeatherWidget.Views
         {
             if (_initialBottom > 0 && e.HeightChanged)
             {
-                // Keep bottom position fixed, adjust top to grow upward
                 this.Top = _initialBottom - e.NewSize.Height;
             }
         }
@@ -256,7 +234,6 @@ namespace WeatherWidget.Views
 
             if (_settingsVisible)
             {
-                // Fade out weather view
                 var fadeOut = new DoubleAnimation(1, 0, TimeSpan.FromMilliseconds(150));
                 fadeOut.Completed += (s, a) =>
                 {
@@ -264,7 +241,6 @@ namespace WeatherWidget.Views
                     CreateSettingsContent();
                     SettingsView.Visibility = Visibility.Visible;
 
-                    // Fade in settings view
                     SettingsView.Opacity = 0;
                     var fadeIn = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(150));
                     SettingsView.BeginAnimation(OpacityProperty, fadeIn);
@@ -273,14 +249,12 @@ namespace WeatherWidget.Views
             }
             else
             {
-                // Fade out settings view
                 var fadeOut = new DoubleAnimation(1, 0, TimeSpan.FromMilliseconds(150));
                 fadeOut.Completed += (s, a) =>
                 {
                     SettingsView.Visibility = Visibility.Collapsed;
                     WeatherView.Visibility = Visibility.Visible;
 
-                    // Fade in weather view
                     WeatherView.Opacity = 0;
                     var fadeIn = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(150));
                     WeatherView.BeginAnimation(OpacityProperty, fadeIn);
@@ -468,7 +442,6 @@ namespace WeatherWidget.Views
                 FontWeight = FontWeights.SemiBold
             };
 
-            // Create rounded corner template
             var template = new System.Windows.Controls.ControlTemplate(typeof(System.Windows.Controls.Button));
             var factory = new System.Windows.FrameworkElementFactory(typeof(System.Windows.Controls.Border));
             factory.SetValue(System.Windows.Controls.Border.BackgroundProperty, new TemplateBindingExtension(System.Windows.Controls.Button.BackgroundProperty));
@@ -502,7 +475,6 @@ namespace WeatherWidget.Views
 
                 _settingsVisible = false;
 
-                // Fade back to weather view
                 var fadeOut = new DoubleAnimation(1, 0, TimeSpan.FromMilliseconds(150));
                 fadeOut.Completed += (sender, args) =>
                 {

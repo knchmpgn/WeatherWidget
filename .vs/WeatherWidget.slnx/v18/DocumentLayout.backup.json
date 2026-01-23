@@ -1,0 +1,53 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\Nick\\Desktop\\WeatherWidget\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{04C40D40-0B22-8A28-7D2C-57EE4C8412D7}|WeatherWidget\\WeatherWidget.csproj|c:\\users\\nick\\desktop\\weatherwidget\\weatherwidget\\views\\weatherflyout.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{04C40D40-0B22-8A28-7D2C-57EE4C8412D7}|WeatherWidget\\WeatherWidget.csproj|solutionrelative:weatherwidget\\views\\weatherflyout.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{04C40D40-0B22-8A28-7D2C-57EE4C8412D7}|WeatherWidget\\WeatherWidget.csproj|c:\\users\\nick\\desktop\\weatherwidget\\weatherwidget\\views\\weatherflyout.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
+      "RelativeMoniker": "D:0:0:{04C40D40-0B22-8A28-7D2C-57EE4C8412D7}|WeatherWidget\\WeatherWidget.csproj|solutionrelative:weatherwidget\\views\\weatherflyout.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "WeatherFlyout.xaml.cs",
+              "DocumentMoniker": "C:\\Users\\Nick\\Desktop\\WeatherWidget\\WeatherWidget\\Views\\WeatherFlyout.xaml.cs",
+              "RelativeDocumentMoniker": "WeatherWidget\\Views\\WeatherFlyout.xaml.cs",
+              "ToolTip": "C:\\Users\\Nick\\Desktop\\WeatherWidget\\WeatherWidget\\Views\\WeatherFlyout.xaml.cs",
+              "RelativeToolTip": "WeatherWidget\\Views\\WeatherFlyout.xaml.cs",
+              "ViewState": "AgIAANsBAAAAAAAAAAAYwPkBAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-23T17:02:49.639Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "WeatherFlyout.xaml",
+              "DocumentMoniker": "C:\\Users\\Nick\\Desktop\\WeatherWidget\\WeatherWidget\\Views\\WeatherFlyout.xaml",
+              "RelativeDocumentMoniker": "WeatherWidget\\Views\\WeatherFlyout.xaml",
+              "ToolTip": "C:\\Users\\Nick\\Desktop\\WeatherWidget\\WeatherWidget\\Views\\WeatherFlyout.xaml",
+              "RelativeToolTip": "WeatherWidget\\Views\\WeatherFlyout.xaml",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
+              "WhenOpened": "2026-01-23T17:02:21.132Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
