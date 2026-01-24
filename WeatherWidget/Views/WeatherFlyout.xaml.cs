@@ -1,7 +1,9 @@
 ﻿using Microsoft.Win32;
 using System;
+using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -31,11 +33,10 @@ namespace WeatherWidget.Views
         private readonly WeatherData _data = null!;
         private readonly LocationData _loc = null!;
         private bool _isDarkMode;
-        private bool _allowDeactivate = false;
+        private bool _allowDeactivate;
         private readonly Rect _anchorRect;
-        private bool _settingsVisible = false;
+        private bool _settingsVisible;
         private double _initialBottom;
-        private bool _isDay = true;
 
         public WeatherFlyout(WeatherData data, LocationData loc, Rect anchorRect)
         {
@@ -52,25 +53,8 @@ namespace WeatherWidget.Views
             _data = data;
             _loc = loc;
 
-            DetermineTimeOfDay();
             DetectTaskbarTheme();
             PopulateWeatherData(loc);
-        }
-
-        private void DetermineTimeOfDay()
-        {
-            try
-            {
-                var now = DateTime.Now;
-                var sunrise = DateTime.Parse(_data.Sunrise);
-                var sunset = DateTime.Parse(_data.Sunset);
-
-                _isDay = now >= sunrise && now < sunset;
-            }
-            catch
-            {
-                _isDay = true;
-            }
         }
 
         private void PopulateWeatherData(LocationData loc)
@@ -91,19 +75,167 @@ namespace WeatherWidget.Views
             }
             catch { }
 
-            DailyForecastList.ItemsSource = _data.Daily;
+            // Populate 5-day forecast
+            PopulateDailyForecast();
+        }
+
+        private void PopulateDailyForecast()
+        {
+            DailyForecastGrid.Children.Clear();
+
+            foreach (var day in _data.Daily)
+            {
+                var card = new Border
+                {
+                    Background = (SolidColorBrush)Resources["CardBackgroundBrush"],
+                    CornerRadius = new CornerRadius(8),
+                    Padding = new Thickness(12),
+                    Margin = new Thickness(0, 0, 8, 0)
+                };
+
+                var stackPanel = new StackPanel
+                {
+                    HorizontalAlignment = HorizontalAlignment.Center
+                };
+
+                // Day label
+                stackPanel.Children.Add(new TextBlock
+                {
+                    Text = day.TimeLabel,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    Foreground = (SolidColorBrush)Resources["PrimaryTextBrush"],
+                    FontSize = 13,
+                    FontWeight = FontWeights.SemiBold,
+                    Margin = new Thickness(0, 0, 0, 12)
+                });
+
+                // Weather icon
+                try
+                {
+                    var icon = new Image
+                    {
+                        Source = new BitmapImage(new Uri($"pack://application:,,,{day.IconPath}")),
+                        Width = 40,
+                        Height = 40,
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        Margin = new Thickness(0, 0, 0, 12)
+                    };
+                    icon.SetValue(RenderOptions.BitmapScalingModeProperty, BitmapScalingMode.HighQuality);
+                    stackPanel.Children.Add(icon);
+                }
+                catch { }
+
+                // Temperature
+                stackPanel.Children.Add(new TextBlock
+                {
+                    Text = day.TempLabel,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    Foreground = (SolidColorBrush)Resources["PrimaryTextBrush"],
+                    FontSize = 12,
+                    FontWeight = FontWeights.Medium,
+                    Margin = new Thickness(0, 0, 0, 12),
+                    TextWrapping = TextWrapping.Wrap,
+                    TextAlignment = TextAlignment.Center
+                });
+
+                // Details stack
+                var detailsStack = new StackPanel
+                {
+                    HorizontalAlignment = HorizontalAlignment.Center
+                };
+
+                // Precipitation
+                var precipStack = new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    Margin = new Thickness(0, 0, 0, 6)
+                };
+
+                try
+                {
+                    var precipIcon = new Image
+                    {
+                        Source = new BitmapImage(new Uri("pack://application:,,,/Assets/PNG/ui-rain.png")),
+                        Width = 12,
+                        Height = 12,
+                        VerticalAlignment = VerticalAlignment.Center,
+                        Margin = new Thickness(0, 0, 6, 0)
+                    };
+                    precipIcon.SetValue(RenderOptions.BitmapScalingModeProperty, BitmapScalingMode.HighQuality);
+                    precipStack.Children.Add(precipIcon);
+                }
+                catch { }
+
+                precipStack.Children.Add(new TextBlock
+                {
+                    Text = day.Humidity,
+                    FontSize = 11,
+                    Foreground = (SolidColorBrush)Resources["SecondaryTextBrush"],
+                    Opacity = 0.7,
+                    VerticalAlignment = VerticalAlignment.Center
+                });
+
+                detailsStack.Children.Add(precipStack);
+
+                // Wind
+                var windStack = new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    HorizontalAlignment = HorizontalAlignment.Center
+                };
+
+                try
+                {
+                    var windIcon = new Image
+                    {
+                        Source = new BitmapImage(new Uri("pack://application:,,,/Assets/PNG/ui-wind.png")),
+                        Width = 12,
+                        Height = 12,
+                        VerticalAlignment = VerticalAlignment.Center,
+                        Margin = new Thickness(0, 0, 6, 0)
+                    };
+                    windIcon.SetValue(RenderOptions.BitmapScalingModeProperty, BitmapScalingMode.HighQuality);
+                    windStack.Children.Add(windIcon);
+                }
+                catch { }
+
+                windStack.Children.Add(new TextBlock
+                {
+                    Text = day.Wind,
+                    FontSize = 11,
+                    Foreground = (SolidColorBrush)Resources["SecondaryTextBrush"],
+                    Opacity = 0.7,
+                    VerticalAlignment = VerticalAlignment.Center
+                });
+
+                detailsStack.Children.Add(windStack);
+
+                stackPanel.Children.Add(detailsStack);
+                card.Child = stackPanel;
+
+                DailyForecastGrid.Children.Add(card);
+            }
+
+            // Remove right margin from last card
+            if (DailyForecastGrid.Children.Count > 0)
+            {
+                var lastCard = DailyForecastGrid.Children[DailyForecastGrid.Children.Count - 1] as Border;
+                if (lastCard != null)
+                {
+                    lastCard.Margin = new Thickness(0);
+                }
+            }
         }
 
         private void DetectTaskbarTheme()
         {
             try
             {
-                using (RegistryKey? key = Registry.CurrentUser.OpenSubKey(
-                    @"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"))
-                {
-                    object? value = key?.GetValue("SystemUsesLightTheme");
-                    _isDarkMode = value == null || value.ToString() == "0";
-                }
+                using RegistryKey? key = Registry.CurrentUser.OpenSubKey(
+                    @"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");
+                object? value = key?.GetValue("SystemUsesLightTheme");
+                _isDarkMode = value == null || value.ToString() == "0";
 
                 if (_isDarkMode)
                 {
@@ -142,21 +274,20 @@ namespace WeatherWidget.Views
                 const int DWMWA_SYSTEMBACKDROP_TYPE = 38;
 
                 int dark = _isDarkMode ? 1 : 0;
-                DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ref dark, sizeof(int));
+                _ = DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ref dark, sizeof(int));
 
-                int roundCorners = 2;
-                DwmSetWindowAttribute(hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, ref roundCorners, sizeof(int));
+                int roundCorners = 2; // DWMWCP_ROUND
+                _ = DwmSetWindowAttribute(hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, ref roundCorners, sizeof(int));
 
-                int micaBackdrop = 2;
+                int micaBackdrop = 2; // DWMSBT_MAINWINDOW
                 int result = DwmSetWindowAttribute(hwnd, DWMWA_SYSTEMBACKDROP_TYPE, ref micaBackdrop, sizeof(int));
 
                 if (result != 0)
                 {
-                    MARGINS margins = new MARGINS { cxLeftWidth = -1, cxRightWidth = -1, cyTopHeight = -1, cyBottomHeight = -1 };
-                    DwmExtendFrameIntoClientArea(hwnd, ref margins);
+                    MARGINS margins = new() { cxLeftWidth = -1, cxRightWidth = -1, cyTopHeight = -1, cyBottomHeight = -1 };
+                    _ = DwmExtendFrameIntoClientArea(hwnd, ref margins);
 
-                    var bg = this.Background as SolidColorBrush;
-                    if (bg != null)
+                    if (this.Background is SolidColorBrush bg)
                     {
                         var color = bg.Color;
                         this.Background = new SolidColorBrush(Color.FromArgb(230, color.R, color.G, color.B));
@@ -165,8 +296,7 @@ namespace WeatherWidget.Views
             }
             catch
             {
-                var bg = this.Background as SolidColorBrush;
-                if (bg != null)
+                if (this.Background is SolidColorBrush bg)
                 {
                     var color = bg.Color;
                     this.Background = new SolidColorBrush(Color.FromArgb(245, color.R, color.G, color.B));
@@ -268,14 +398,17 @@ namespace WeatherWidget.Views
             var settings = Properties.Settings.Default;
             SettingsContent.Children.Clear();
 
-            var stackPanel = new System.Windows.Controls.StackPanel();
+            var stackPanel = new StackPanel();
 
             // Header with back button
-            var headerGrid = new System.Windows.Controls.Grid { Margin = new Thickness(0, -6, 0, 20) };
-            headerGrid.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = GridLength.Auto });
-            headerGrid.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition());
+            var headerGrid = new Grid
+            {
+                Margin = new Thickness(0, 0, 0, 24)
+            };
+            headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            headerGrid.ColumnDefinitions.Add(new ColumnDefinition());
 
-            var backButton = new System.Windows.Controls.Button
+            var backButton = new Button
             {
                 Content = "←",
                 FontSize = 20,
@@ -287,10 +420,10 @@ namespace WeatherWidget.Views
                 VerticalAlignment = VerticalAlignment.Center
             };
             backButton.Click += (s, e) => OpenSettings_Click(s, e);
-            System.Windows.Controls.Grid.SetColumn(backButton, 0);
+            Grid.SetColumn(backButton, 0);
             headerGrid.Children.Add(backButton);
 
-            var headerText = new System.Windows.Controls.TextBlock
+            var headerText = new TextBlock
             {
                 Text = "Settings",
                 FontSize = 20,
@@ -299,15 +432,18 @@ namespace WeatherWidget.Views
                 VerticalAlignment = VerticalAlignment.Center,
                 Margin = new Thickness(8, 0, 0, 0)
             };
-            System.Windows.Controls.Grid.SetColumn(headerText, 1);
+            Grid.SetColumn(headerText, 1);
             headerGrid.Children.Add(headerText);
 
             stackPanel.Children.Add(headerGrid);
 
             // Location section
-            var locationSection = new System.Windows.Controls.StackPanel { Margin = new Thickness(0, 0, 0, 20) };
+            var locationSection = new StackPanel
+            {
+                Margin = new Thickness(0, 0, 0, 24)
+            };
 
-            var locationHeader = new System.Windows.Controls.TextBlock
+            var locationHeader = new TextBlock
             {
                 Text = "Location",
                 FontSize = 15,
@@ -317,22 +453,27 @@ namespace WeatherWidget.Views
             };
             locationSection.Children.Add(locationHeader);
 
-            var useManualCheck = new System.Windows.Controls.CheckBox
+            var useManualCheck = new CheckBox
             {
                 Content = "Use manual location",
                 IsChecked = settings.UseManualLocation,
                 Margin = new Thickness(0, 0, 0, 12),
-                Foreground = (SolidColorBrush)Resources["PrimaryTextBrush"]
+                Foreground = (SolidColorBrush)Resources["PrimaryTextBrush"],
+                Template = CreateRoundedCheckBoxTemplate()
             };
+
             locationSection.Children.Add(useManualCheck);
 
-            var locationGrid = new System.Windows.Controls.Grid { Margin = new Thickness(0, 0, 0, 8) };
-            locationGrid.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition());
-            locationGrid.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = new GridLength(16) });
-            locationGrid.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition());
+            var locationGrid = new Grid
+            {
+                Margin = new Thickness(0, 0, 0, 8)
+            };
+            locationGrid.ColumnDefinitions.Add(new ColumnDefinition());
+            locationGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(16) });
+            locationGrid.ColumnDefinitions.Add(new ColumnDefinition());
 
-            var latStack = new System.Windows.Controls.StackPanel();
-            latStack.Children.Add(new System.Windows.Controls.TextBlock
+            var latStack = new StackPanel();
+            latStack.Children.Add(new TextBlock
             {
                 Text = "Latitude",
                 FontSize = 12,
@@ -340,20 +481,25 @@ namespace WeatherWidget.Views
                 Opacity = 0.7,
                 Margin = new Thickness(0, 0, 0, 6)
             });
-            var latBox = new System.Windows.Controls.TextBox
+
+            var latBox = new TextBox
             {
-                Text = settings.ManualLatitude.ToString(),
-                Padding = new Thickness(10, 8, 10, 8),
+                Text = settings.ManualLatitude.ToString(CultureInfo.InvariantCulture),
+                Padding = new Thickness(12, 10, 12, 10),
                 IsEnabled = settings.UseManualLocation,
                 BorderThickness = new Thickness(1),
-                BorderBrush = new SolidColorBrush(Color.FromRgb(60, 60, 60))
+                BorderBrush = new SolidColorBrush(Color.FromRgb(80, 80, 80)),
+                Background = new SolidColorBrush(_isDarkMode ? Color.FromRgb(42, 42, 42) : Color.FromRgb(255, 255, 255)),
+                Foreground = (SolidColorBrush)Resources["PrimaryTextBrush"],
+                Template = CreateRoundedTextBoxTemplate()
             };
+
             latStack.Children.Add(latBox);
-            System.Windows.Controls.Grid.SetColumn(latStack, 0);
+            Grid.SetColumn(latStack, 0);
             locationGrid.Children.Add(latStack);
 
-            var lonStack = new System.Windows.Controls.StackPanel();
-            lonStack.Children.Add(new System.Windows.Controls.TextBlock
+            var lonStack = new StackPanel();
+            lonStack.Children.Add(new TextBlock
             {
                 Text = "Longitude",
                 FontSize = 12,
@@ -361,16 +507,21 @@ namespace WeatherWidget.Views
                 Opacity = 0.7,
                 Margin = new Thickness(0, 0, 0, 6)
             });
-            var lonBox = new System.Windows.Controls.TextBox
+
+            var lonBox = new TextBox
             {
-                Text = settings.ManualLongitude.ToString(),
-                Padding = new Thickness(10, 8, 10, 8),
+                Text = settings.ManualLongitude.ToString(CultureInfo.InvariantCulture),
+                Padding = new Thickness(12, 10, 12, 10),
                 IsEnabled = settings.UseManualLocation,
                 BorderThickness = new Thickness(1),
-                BorderBrush = new SolidColorBrush(Color.FromRgb(60, 60, 60))
+                BorderBrush = new SolidColorBrush(Color.FromRgb(80, 80, 80)),
+                Background = new SolidColorBrush(_isDarkMode ? Color.FromRgb(42, 42, 42) : Color.FromRgb(255, 255, 255)),
+                Foreground = (SolidColorBrush)Resources["PrimaryTextBrush"],
+                Template = CreateRoundedTextBoxTemplate()
             };
+
             lonStack.Children.Add(lonBox);
-            System.Windows.Controls.Grid.SetColumn(lonStack, 2);
+            Grid.SetColumn(lonStack, 2);
             locationGrid.Children.Add(lonStack);
 
             useManualCheck.Checked += (s, e) => { latBox.IsEnabled = true; lonBox.IsEnabled = true; };
@@ -378,7 +529,7 @@ namespace WeatherWidget.Views
 
             locationSection.Children.Add(locationGrid);
 
-            var helpText = new System.Windows.Controls.TextBlock
+            var helpText = new TextBlock
             {
                 Text = "When disabled, location is detected automatically from your IP address.",
                 FontSize = 11,
@@ -392,9 +543,12 @@ namespace WeatherWidget.Views
             stackPanel.Children.Add(locationSection);
 
             // Startup section
-            var startupSection = new System.Windows.Controls.StackPanel { Margin = new Thickness(0, 0, 0, 24) };
+            var startupSection = new StackPanel
+            {
+                Margin = new Thickness(0, 0, 0, 24)
+            };
 
-            var startupHeader = new System.Windows.Controls.TextBlock
+            var startupHeader = new TextBlock
             {
                 Text = "Startup",
                 FontSize = 15,
@@ -404,16 +558,18 @@ namespace WeatherWidget.Views
             };
             startupSection.Children.Add(startupHeader);
 
-            var startupCheck = new System.Windows.Controls.CheckBox
+            var startupCheck = new CheckBox
             {
                 Content = "Start with Windows",
                 IsChecked = settings.StartWithWindows,
                 Foreground = (SolidColorBrush)Resources["PrimaryTextBrush"],
-                Margin = new Thickness(0, 0, 0, 6)
+                Margin = new Thickness(0, 0, 0, 6),
+                Template = CreateRoundedCheckBoxTemplate()
             };
+
             startupSection.Children.Add(startupCheck);
 
-            var startupHelp = new System.Windows.Controls.TextBlock
+            var startupHelp = new TextBlock
             {
                 Text = "The widget will appear automatically in your taskbar on startup.",
                 FontSize = 11,
@@ -427,11 +583,11 @@ namespace WeatherWidget.Views
             stackPanel.Children.Add(startupSection);
 
             // Buttons
-            var buttonGrid = new System.Windows.Controls.Grid();
-            buttonGrid.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition());
-            buttonGrid.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = GridLength.Auto });
+            var buttonGrid = new Grid();
+            buttonGrid.ColumnDefinitions.Add(new ColumnDefinition());
+            buttonGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
-            var saveButton = new System.Windows.Controls.Button
+            var saveButton = new Button
             {
                 Content = "Save",
                 Padding = new Thickness(24, 10, 24, 10),
@@ -439,26 +595,16 @@ namespace WeatherWidget.Views
                 Foreground = Brushes.White,
                 BorderThickness = new Thickness(0),
                 Cursor = Cursors.Hand,
-                FontWeight = FontWeights.SemiBold
+                FontWeight = FontWeights.SemiBold,
+                Template = CreateRoundedButtonTemplate()
             };
-
-            var template = new System.Windows.Controls.ControlTemplate(typeof(System.Windows.Controls.Button));
-            var factory = new System.Windows.FrameworkElementFactory(typeof(System.Windows.Controls.Border));
-            factory.SetValue(System.Windows.Controls.Border.BackgroundProperty, new TemplateBindingExtension(System.Windows.Controls.Button.BackgroundProperty));
-            factory.SetValue(System.Windows.Controls.Border.CornerRadiusProperty, new CornerRadius(4));
-            factory.SetValue(System.Windows.Controls.Border.PaddingProperty, new TemplateBindingExtension(System.Windows.Controls.Button.PaddingProperty));
-            var contentFactory = new System.Windows.FrameworkElementFactory(typeof(System.Windows.Controls.ContentPresenter));
-            contentFactory.SetValue(System.Windows.Controls.ContentPresenter.HorizontalAlignmentProperty, HorizontalAlignment.Center);
-            contentFactory.SetValue(System.Windows.Controls.ContentPresenter.VerticalAlignmentProperty, VerticalAlignment.Center);
-            factory.AppendChild(contentFactory);
-            template.VisualTree = factory;
-            saveButton.Template = template;
 
             saveButton.Click += (s, e) =>
             {
                 if (useManualCheck.IsChecked == true)
                 {
-                    if (double.TryParse(latBox.Text, out double lat) && double.TryParse(lonBox.Text, out double lon))
+                    if (double.TryParse(latBox.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out double lat) &&
+                        double.TryParse(lonBox.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out double lon))
                     {
                         settings.UseManualLocation = true;
                         settings.ManualLatitude = lat;
@@ -487,12 +633,103 @@ namespace WeatherWidget.Views
                 };
                 SettingsView.BeginAnimation(OpacityProperty, fadeOut);
             };
-            System.Windows.Controls.Grid.SetColumn(saveButton, 1);
+            Grid.SetColumn(saveButton, 1);
             buttonGrid.Children.Add(saveButton);
 
             stackPanel.Children.Add(buttonGrid);
 
             SettingsContent.Children.Add(stackPanel);
+        }
+
+        private static ControlTemplate CreateRoundedTextBoxTemplate()
+        {
+            var template = new ControlTemplate(typeof(TextBox));
+            var borderFactory = new FrameworkElementFactory(typeof(Border));
+            borderFactory.SetValue(Border.BackgroundProperty, new TemplateBindingExtension(TextBox.BackgroundProperty));
+            borderFactory.SetValue(Border.BorderBrushProperty, new TemplateBindingExtension(TextBox.BorderBrushProperty));
+            borderFactory.SetValue(Border.BorderThicknessProperty, new TemplateBindingExtension(TextBox.BorderThicknessProperty));
+            borderFactory.SetValue(Border.CornerRadiusProperty, new CornerRadius(4));
+            borderFactory.SetValue(Border.PaddingProperty, new TemplateBindingExtension(TextBox.PaddingProperty));
+
+            var scrollFactory = new FrameworkElementFactory(typeof(ScrollViewer));
+            scrollFactory.SetValue(FrameworkElement.NameProperty, "PART_ContentHost");
+            scrollFactory.SetValue(ScrollViewer.HorizontalScrollBarVisibilityProperty, ScrollBarVisibility.Hidden);
+            scrollFactory.SetValue(ScrollViewer.VerticalScrollBarVisibilityProperty, ScrollBarVisibility.Hidden);
+
+            borderFactory.AppendChild(scrollFactory);
+            template.VisualTree = borderFactory;
+
+            return template;
+        }
+
+        private static ControlTemplate CreateRoundedCheckBoxTemplate()
+        {
+            var template = new ControlTemplate(typeof(CheckBox));
+            var gridFactory = new FrameworkElementFactory(typeof(Grid));
+
+            // Create column definitions properly
+            var col0 = new FrameworkElementFactory(typeof(ColumnDefinition));
+            col0.SetValue(ColumnDefinition.WidthProperty, GridLength.Auto);
+            gridFactory.AppendChild(col0);
+
+            var col1 = new FrameworkElementFactory(typeof(ColumnDefinition));
+            col1.SetValue(ColumnDefinition.WidthProperty, new GridLength(1, GridUnitType.Star));
+            gridFactory.AppendChild(col1);
+
+            // Checkbox border
+            var borderFactory = new FrameworkElementFactory(typeof(Border));
+            borderFactory.SetValue(Border.WidthProperty, 16.0);
+            borderFactory.SetValue(Border.HeightProperty, 16.0);
+            borderFactory.SetValue(Border.CornerRadiusProperty, new CornerRadius(4));
+            borderFactory.SetValue(Border.BorderBrushProperty, new SolidColorBrush(Color.FromRgb(100, 100, 100)));
+            borderFactory.SetValue(Border.BorderThicknessProperty, new Thickness(1));
+            borderFactory.SetValue(Border.BackgroundProperty, Brushes.Transparent);
+            borderFactory.SetValue(Grid.ColumnProperty, 0);
+            borderFactory.SetValue(FrameworkElement.VerticalAlignmentProperty, VerticalAlignment.Center);
+
+            // Checkmark
+            var checkMarkFactory = new FrameworkElementFactory(typeof(TextBlock));
+            checkMarkFactory.SetValue(TextBlock.TextProperty, "✓");
+            checkMarkFactory.SetValue(TextBlock.ForegroundProperty, new SolidColorBrush(Colors.White));
+            checkMarkFactory.SetValue(TextBlock.FontSizeProperty, 12.0);
+            checkMarkFactory.SetValue(TextBlock.HorizontalAlignmentProperty, HorizontalAlignment.Center);
+            checkMarkFactory.SetValue(TextBlock.VerticalAlignmentProperty, VerticalAlignment.Center);
+            checkMarkFactory.SetValue(UIElement.VisibilityProperty, Visibility.Collapsed);
+
+            borderFactory.AppendChild(checkMarkFactory);
+            gridFactory.AppendChild(borderFactory);
+
+            // Content presenter
+            var contentFactory = new FrameworkElementFactory(typeof(ContentPresenter));
+            contentFactory.SetValue(Grid.ColumnProperty, 1);
+            contentFactory.SetValue(FrameworkElement.MarginProperty, new Thickness(8, 0, 0, 0));
+            contentFactory.SetValue(FrameworkElement.VerticalAlignmentProperty, VerticalAlignment.Center);
+
+            gridFactory.AppendChild(contentFactory);
+
+            template.VisualTree = gridFactory;
+
+            // Add trigger to show checkmark when checked
+            var trigger = new Trigger { Property = CheckBox.IsCheckedProperty, Value = true };
+            trigger.Setters.Add(new Setter(UIElement.VisibilityProperty, Visibility.Visible, "checkMark"));
+            template.Triggers.Add(trigger);
+
+            return template;
+        }
+
+        private static ControlTemplate CreateRoundedButtonTemplate()
+        {
+            var template = new ControlTemplate(typeof(Button));
+            var buttonFactory = new FrameworkElementFactory(typeof(Border));
+            buttonFactory.SetValue(Border.BackgroundProperty, new TemplateBindingExtension(Button.BackgroundProperty));
+            buttonFactory.SetValue(Border.CornerRadiusProperty, new CornerRadius(4));
+            buttonFactory.SetValue(Border.PaddingProperty, new TemplateBindingExtension(Button.PaddingProperty));
+            var contentBtnFactory = new FrameworkElementFactory(typeof(ContentPresenter));
+            contentBtnFactory.SetValue(ContentPresenter.HorizontalAlignmentProperty, HorizontalAlignment.Center);
+            contentBtnFactory.SetValue(ContentPresenter.VerticalAlignmentProperty, VerticalAlignment.Center);
+            buttonFactory.AppendChild(contentBtnFactory);
+            template.VisualTree = buttonFactory;
+            return template;
         }
 
         private void Window_Deactivated(object sender, EventArgs e)
