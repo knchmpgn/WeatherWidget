@@ -30,6 +30,24 @@ namespace WeatherWidget.Views
             public int cyBottomHeight;
         }
 
+        // Windows 11 DWM attributes
+        private const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
+        private const int DWMWA_WINDOW_CORNER_PREFERENCE = 33;
+        private const int DWMWA_SYSTEMBACKDROP_TYPE = 38;
+
+        // Backdrop types
+        private const int DWMSBT_AUTO = 0;
+        private const int DWMSBT_NONE = 1;
+        private const int DWMSBT_MAINWINDOW = 2; // Mica
+        private const int DWMSBT_TRANSIENTWINDOW = 3; // Acrylic
+        private const int DWMSBT_TABBEDWINDOW = 4; // Tabbed Mica
+
+        // Corner preferences
+        private const int DWMWCP_DEFAULT = 0;
+        private const int DWMWCP_DONOTROUND = 1;
+        private const int DWMWCP_ROUND = 2;
+        private const int DWMWCP_ROUNDSMALL = 3;
+
         private readonly WeatherData _data = null!;
         private readonly LocationData _loc = null!;
         private bool _isDarkMode;
@@ -75,7 +93,6 @@ namespace WeatherWidget.Views
             }
             catch { }
 
-            // Populate 5-day forecast
             PopulateDailyForecast();
         }
 
@@ -98,7 +115,6 @@ namespace WeatherWidget.Views
                     HorizontalAlignment = HorizontalAlignment.Center
                 };
 
-                // Day label
                 stackPanel.Children.Add(new TextBlock
                 {
                     Text = day.TimeLabel,
@@ -109,7 +125,6 @@ namespace WeatherWidget.Views
                     Margin = new Thickness(0, 0, 0, 12)
                 });
 
-                // Weather icon - Now using the IconPath which includes day/night variants
                 try
                 {
                     var icon = new Image
@@ -118,14 +133,13 @@ namespace WeatherWidget.Views
                         Width = 40,
                         Height = 40,
                         HorizontalAlignment = HorizontalAlignment.Center,
-                        Margin = new Thickness(0, 0, 0, 12)
+                        Margin = new Thickness(0, 0, 0, 17)
                     };
                     icon.SetValue(RenderOptions.BitmapScalingModeProperty, BitmapScalingMode.HighQuality);
                     stackPanel.Children.Add(icon);
                 }
                 catch { }
 
-                // Temperature
                 stackPanel.Children.Add(new TextBlock
                 {
                     Text = day.TempLabel,
@@ -138,13 +152,11 @@ namespace WeatherWidget.Views
                     TextAlignment = TextAlignment.Center
                 });
 
-                // Details stack
                 var detailsStack = new StackPanel
                 {
                     HorizontalAlignment = HorizontalAlignment.Center
                 };
 
-                // Precipitation
                 var precipStack = new StackPanel
                 {
                     Orientation = Orientation.Horizontal,
@@ -178,7 +190,6 @@ namespace WeatherWidget.Views
 
                 detailsStack.Children.Add(precipStack);
 
-                // Wind
                 var windStack = new StackPanel
                 {
                     Orientation = Orientation.Horizontal,
@@ -217,7 +228,6 @@ namespace WeatherWidget.Views
                 DailyForecastGrid.Children.Add(card);
             }
 
-            // Remove right margin from last card
             if (DailyForecastGrid.Children.Count > 0)
             {
                 if (DailyForecastGrid.Children[^1] is Border lastCard)
@@ -238,19 +248,19 @@ namespace WeatherWidget.Views
 
                 if (_isDarkMode)
                 {
-                    this.Background = new SolidColorBrush(Color.FromRgb(32, 32, 32));
+                    this.Background = new SolidColorBrush(Color.FromArgb(235, 32, 32, 32));
                     UpdateThemeResources(Color.FromRgb(237, 237, 237), Color.FromRgb(42, 42, 42));
                 }
                 else
                 {
-                    this.Background = new SolidColorBrush(Color.FromRgb(243, 243, 243));
+                    this.Background = new SolidColorBrush(Color.FromArgb(235, 243, 243, 243));
                     UpdateThemeResources(Color.FromRgb(32, 32, 32), Color.FromRgb(250, 250, 250));
                 }
             }
             catch
             {
                 _isDarkMode = true;
-                this.Background = new SolidColorBrush(Color.FromRgb(32, 32, 32));
+                this.Background = new SolidColorBrush(Color.FromArgb(235, 32, 32, 32));
                 UpdateThemeResources(Color.FromRgb(237, 237, 237), Color.FromRgb(42, 42, 42));
             }
         }
@@ -268,45 +278,41 @@ namespace WeatherWidget.Views
 
             try
             {
-                const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
-                const int DWMWA_WINDOW_CORNER_PREFERENCE = 33;
-                const int DWMWA_SYSTEMBACKDROP_TYPE = 38;
+                // Set dark mode preference
+                int darkMode = _isDarkMode ? 1 : 0;
+                _ = DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ref darkMode, sizeof(int));
 
-                // Set dark mode
-                int dark = _isDarkMode ? 1 : 0;
-                _ = DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ref dark, sizeof(int));
+                // Set rounded corners (Windows 11 style)
+                int cornerPreference = DWMWCP_ROUND;
+                _ = DwmSetWindowAttribute(hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, ref cornerPreference, sizeof(int));
 
-                // Set rounded corners
-                int roundCorners = 2; // DWMWCP_ROUND
-                _ = DwmSetWindowAttribute(hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, ref roundCorners, sizeof(int));
+                // Try to enable Mica backdrop (Windows 11 22H2+)
+                int backdropType = DWMSBT_MAINWINDOW; // Mica
+                int result = DwmSetWindowAttribute(hwnd, DWMWA_SYSTEMBACKDROP_TYPE, ref backdropType, sizeof(int));
 
-                // Try to set Mica backdrop (value 2 = DWMSBT_MAINWINDOW for Mica)
-                int micaBackdrop = 2;
-                int result = DwmSetWindowAttribute(hwnd, DWMWA_SYSTEMBACKDROP_TYPE, ref micaBackdrop, sizeof(int));
-
-                // If Mica fails or needs DWM extension, extend frame
+                // If Mica is not available, try Acrylic
                 if (result != 0)
                 {
-                    MARGINS margins = new() { cxLeftWidth = -1, cxRightWidth = -1, cyTopHeight = -1, cyBottomHeight = -1 };
-                    _ = DwmExtendFrameIntoClientArea(hwnd, ref margins);
+                    backdropType = DWMSBT_TRANSIENTWINDOW; // Acrylic
+                    result = DwmSetWindowAttribute(hwnd, DWMWA_SYSTEMBACKDROP_TYPE, ref backdropType, sizeof(int));
                 }
 
-                // Make window background semi-transparent for better backdrop visibility
-                if (this.Background is SolidColorBrush bg)
+                // If both fail, extend frame for blur effect
+                if (result != 0)
                 {
-                    var color = bg.Color;
-                    // Reduce opacity for better Mica/Acrylic effect visibility
-                    this.Background = new SolidColorBrush(Color.FromArgb(220, color.R, color.G, color.B));
+                    MARGINS margins = new()
+                    {
+                        cxLeftWidth = -1,
+                        cxRightWidth = -1,
+                        cyTopHeight = -1,
+                        cyBottomHeight = -1
+                    };
+                    _ = DwmExtendFrameIntoClientArea(hwnd, ref margins);
                 }
             }
             catch
             {
-                // Fallback to semi-transparent background
-                if (this.Background is SolidColorBrush bg)
-                {
-                    var color = bg.Color;
-                    this.Background = new SolidColorBrush(Color.FromArgb(240, color.R, color.G, color.B));
-                }
+                // Fallback: just use semi-transparent background
             }
 
             PositionWindow();
@@ -336,8 +342,9 @@ namespace WeatherWidget.Views
         {
             var workArea = SystemParameters.WorkArea;
 
+            // Windows 11 Quick Settings has ~16px gap from taskbar
             double targetLeft = _anchorRect.Left + (_anchorRect.Width - this.ActualWidth) / 2;
-            double targetTop = _anchorRect.Top - this.ActualHeight - 12;
+            double targetTop = _anchorRect.Top - this.ActualHeight - 16;
 
             if (targetLeft < workArea.Left + 10)
                 targetLeft = workArea.Left + 10;
@@ -459,13 +466,14 @@ namespace WeatherWidget.Views
             };
             locationSection.Children.Add(locationHeader);
 
+            // Use Win11 checkbox style
             var useManualCheck = new CheckBox
             {
                 Content = "Use manual location",
                 IsChecked = settings.UseManualLocation,
                 Margin = new Thickness(0, 0, 0, 12),
                 Foreground = (SolidColorBrush)Resources["PrimaryTextBrush"],
-                Style = CreateRoundedCheckBoxStyle()
+                Style = (Style)Application.Current.FindResource("Win11CheckBox")
             };
 
             locationSection.Children.Add(useManualCheck);
@@ -488,16 +496,12 @@ namespace WeatherWidget.Views
                 Margin = new Thickness(0, 0, 0, 6)
             });
 
+            // Use Win11 textbox style
             var latBox = new TextBox
             {
                 Text = settings.ManualLatitude.ToString(CultureInfo.InvariantCulture),
-                Padding = new Thickness(12, 10, 12, 10),
                 IsEnabled = settings.UseManualLocation,
-                BorderThickness = new Thickness(1),
-                BorderBrush = new SolidColorBrush(Color.FromRgb(80, 80, 80)),
-                Background = new SolidColorBrush(_isDarkMode ? Color.FromRgb(42, 42, 42) : Color.FromRgb(255, 255, 255)),
-                Foreground = (SolidColorBrush)Resources["PrimaryTextBrush"],
-                Style = CreateRoundedTextBoxStyle()
+                Style = (Style)Application.Current.FindResource("Win11TextBox")
             };
 
             latStack.Children.Add(latBox);
@@ -514,16 +518,12 @@ namespace WeatherWidget.Views
                 Margin = new Thickness(0, 0, 0, 6)
             });
 
+            // Use Win11 textbox style
             var lonBox = new TextBox
             {
                 Text = settings.ManualLongitude.ToString(CultureInfo.InvariantCulture),
-                Padding = new Thickness(12, 10, 12, 10),
                 IsEnabled = settings.UseManualLocation,
-                BorderThickness = new Thickness(1),
-                BorderBrush = new SolidColorBrush(Color.FromRgb(80, 80, 80)),
-                Background = new SolidColorBrush(_isDarkMode ? Color.FromRgb(42, 42, 42) : Color.FromRgb(255, 255, 255)),
-                Foreground = (SolidColorBrush)Resources["PrimaryTextBrush"],
-                Style = CreateRoundedTextBoxStyle()
+                Style = (Style)Application.Current.FindResource("Win11TextBox")
             };
 
             lonStack.Children.Add(lonBox);
@@ -564,13 +564,14 @@ namespace WeatherWidget.Views
             };
             startupSection.Children.Add(startupHeader);
 
+            // Use Win11 checkbox style
             var startupCheck = new CheckBox
             {
                 Content = "Start with Windows",
                 IsChecked = settings.StartWithWindows,
                 Foreground = (SolidColorBrush)Resources["PrimaryTextBrush"],
                 Margin = new Thickness(0, 0, 0, 6),
-                Style = CreateRoundedCheckBoxStyle()
+                Style = (Style)Application.Current.FindResource("Win11CheckBox")
             };
 
             startupSection.Children.Add(startupCheck);
@@ -593,16 +594,11 @@ namespace WeatherWidget.Views
             buttonGrid.ColumnDefinitions.Add(new ColumnDefinition());
             buttonGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
+            // Use Win11 accent button style
             var saveButton = new Button
             {
                 Content = "Save",
-                Padding = new Thickness(24, 10, 24, 10),
-                Background = new SolidColorBrush(Color.FromRgb(0, 120, 212)),
-                Foreground = Brushes.White,
-                BorderThickness = new Thickness(0),
-                Cursor = Cursors.Hand,
-                FontWeight = FontWeights.SemiBold,
-                Style = CreateRoundedButtonStyle()
+                Style = (Style)Application.Current.FindResource("Win11AccentButton")
             };
 
             saveButton.Click += (s, e) =>
@@ -652,129 +648,6 @@ namespace WeatherWidget.Views
             stackPanel.Children.Add(buttonGrid);
 
             SettingsContent.Children.Add(stackPanel);
-        }
-
-        private static Style CreateRoundedTextBoxStyle()
-        {
-            var style = new Style(typeof(TextBox));
-
-            var template = new ControlTemplate(typeof(TextBox));
-            var borderFactory = new FrameworkElementFactory(typeof(Border));
-            borderFactory.SetValue(Border.BackgroundProperty, new TemplateBindingExtension(TextBox.BackgroundProperty));
-            borderFactory.SetValue(Border.BorderBrushProperty, new TemplateBindingExtension(TextBox.BorderBrushProperty));
-            borderFactory.SetValue(Border.BorderThicknessProperty, new TemplateBindingExtension(TextBox.BorderThicknessProperty));
-            borderFactory.SetValue(Border.CornerRadiusProperty, new CornerRadius(6));
-            borderFactory.SetValue(Border.PaddingProperty, new TemplateBindingExtension(TextBox.PaddingProperty));
-
-            var scrollFactory = new FrameworkElementFactory(typeof(ScrollViewer));
-            scrollFactory.SetValue(FrameworkElement.NameProperty, "PART_ContentHost");
-            scrollFactory.SetValue(ScrollViewer.HorizontalScrollBarVisibilityProperty, ScrollBarVisibility.Hidden);
-            scrollFactory.SetValue(ScrollViewer.VerticalScrollBarVisibilityProperty, ScrollBarVisibility.Hidden);
-
-            borderFactory.AppendChild(scrollFactory);
-            template.VisualTree = borderFactory;
-
-            style.Setters.Add(new Setter(TextBox.TemplateProperty, template));
-            return style;
-        }
-
-        private static Style CreateRoundedCheckBoxStyle()
-        {
-            var style = new Style(typeof(CheckBox));
-
-            var template = new ControlTemplate(typeof(CheckBox));
-            var gridFactory = new FrameworkElementFactory(typeof(Grid));
-
-            // Create column definitions manually
-            var col0 = new FrameworkElementFactory(typeof(ColumnDefinition));
-            col0.SetValue(ColumnDefinition.WidthProperty, GridLength.Auto);
-            gridFactory.AppendChild(col0);
-
-            var col1 = new FrameworkElementFactory(typeof(ColumnDefinition));
-            col1.SetValue(ColumnDefinition.WidthProperty, new GridLength(1, GridUnitType.Star));
-            gridFactory.AppendChild(col1);
-
-            // Checkbox border with rounded corners
-            var borderFactory = new FrameworkElementFactory(typeof(Border));
-            borderFactory.SetValue(Border.WidthProperty, 18.0);
-            borderFactory.SetValue(Border.HeightProperty, 18.0);
-            borderFactory.SetValue(Border.CornerRadiusProperty, new CornerRadius(4));
-            borderFactory.SetValue(Border.BorderBrushProperty, new SolidColorBrush(Color.FromRgb(100, 100, 100)));
-            borderFactory.SetValue(Border.BorderThicknessProperty, new Thickness(1.5));
-            borderFactory.SetValue(Border.BackgroundProperty, Brushes.Transparent);
-            borderFactory.SetValue(Grid.ColumnProperty, 0);
-            borderFactory.SetValue(FrameworkElement.VerticalAlignmentProperty, VerticalAlignment.Center);
-            borderFactory.SetValue(FrameworkElement.NameProperty, "CheckBoxBorder");
-
-            // Checkmark
-            var checkMarkFactory = new FrameworkElementFactory(typeof(TextBlock));
-            checkMarkFactory.SetValue(TextBlock.TextProperty, "✓");
-            checkMarkFactory.SetValue(TextBlock.ForegroundProperty, new SolidColorBrush(Colors.White));
-            checkMarkFactory.SetValue(TextBlock.FontSizeProperty, 13.0);
-            checkMarkFactory.SetValue(TextBlock.FontWeightProperty, FontWeights.Bold);
-            checkMarkFactory.SetValue(TextBlock.HorizontalAlignmentProperty, HorizontalAlignment.Center);
-            checkMarkFactory.SetValue(TextBlock.VerticalAlignmentProperty, VerticalAlignment.Center);
-            checkMarkFactory.SetValue(UIElement.VisibilityProperty, Visibility.Collapsed);
-            checkMarkFactory.SetValue(FrameworkElement.NameProperty, "CheckMark");
-
-            borderFactory.AppendChild(checkMarkFactory);
-            gridFactory.AppendChild(borderFactory);
-
-            // Content presenter
-            var contentFactory = new FrameworkElementFactory(typeof(ContentPresenter));
-            contentFactory.SetValue(Grid.ColumnProperty, 1);
-            contentFactory.SetValue(FrameworkElement.MarginProperty, new Thickness(8, 0, 0, 0));
-            contentFactory.SetValue(FrameworkElement.VerticalAlignmentProperty, VerticalAlignment.Center);
-
-            gridFactory.AppendChild(contentFactory);
-            template.VisualTree = gridFactory;
-
-            // Trigger for checked state
-            var checkedTrigger = new Trigger { Property = CheckBox.IsCheckedProperty, Value = true };
-            checkedTrigger.Setters.Add(new Setter(UIElement.VisibilityProperty, Visibility.Visible, "CheckMark"));
-            checkedTrigger.Setters.Add(new Setter(Border.BackgroundProperty, new SolidColorBrush(Color.FromRgb(0, 120, 212)), "CheckBoxBorder"));
-            checkedTrigger.Setters.Add(new Setter(Border.BorderBrushProperty, new SolidColorBrush(Color.FromRgb(0, 120, 212)), "CheckBoxBorder"));
-            template.Triggers.Add(checkedTrigger);
-
-            // Trigger for mouse over
-            var hoverTrigger = new Trigger { Property = CheckBox.IsMouseOverProperty, Value = true };
-            hoverTrigger.Setters.Add(new Setter(Border.BorderBrushProperty, new SolidColorBrush(Color.FromRgb(150, 150, 150)), "CheckBoxBorder"));
-            template.Triggers.Add(hoverTrigger);
-
-            style.Setters.Add(new Setter(CheckBox.TemplateProperty, template));
-            return style;
-        }
-
-        private static Style CreateRoundedButtonStyle()
-        {
-            var style = new Style(typeof(Button));
-
-            var template = new ControlTemplate(typeof(Button));
-            var buttonFactory = new FrameworkElementFactory(typeof(Border));
-            buttonFactory.SetValue(Border.BackgroundProperty, new TemplateBindingExtension(Button.BackgroundProperty));
-            buttonFactory.SetValue(Border.CornerRadiusProperty, new CornerRadius(6));
-            buttonFactory.SetValue(Border.PaddingProperty, new TemplateBindingExtension(Button.PaddingProperty));
-            buttonFactory.SetValue(FrameworkElement.NameProperty, "ButtonBorder");
-
-            var contentBtnFactory = new FrameworkElementFactory(typeof(ContentPresenter));
-            contentBtnFactory.SetValue(ContentPresenter.HorizontalAlignmentProperty, HorizontalAlignment.Center);
-            contentBtnFactory.SetValue(ContentPresenter.VerticalAlignmentProperty, VerticalAlignment.Center);
-
-            buttonFactory.AppendChild(contentBtnFactory);
-            template.VisualTree = buttonFactory;
-
-            // Hover trigger
-            var hoverTrigger = new Trigger { Property = Button.IsMouseOverProperty, Value = true };
-            hoverTrigger.Setters.Add(new Setter(Border.BackgroundProperty, new SolidColorBrush(Color.FromRgb(0, 100, 180)), "ButtonBorder"));
-            template.Triggers.Add(hoverTrigger);
-
-            // Pressed trigger
-            var pressedTrigger = new Trigger { Property = Button.IsPressedProperty, Value = true };
-            pressedTrigger.Setters.Add(new Setter(Border.BackgroundProperty, new SolidColorBrush(Color.FromRgb(0, 80, 150)), "ButtonBorder"));
-            template.Triggers.Add(pressedTrigger);
-
-            style.Setters.Add(new Setter(Button.TemplateProperty, template));
-            return style;
         }
 
         private void Window_Deactivated(object sender, EventArgs e)

@@ -46,6 +46,23 @@ namespace WeatherWidget.Views
         [DllImport("user32.dll")]
         private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
 
+        [DllImport("shell32.dll")]
+        private static extern IntPtr SHAppBarMessage(int dwMessage, ref APPBARDATA pData);
+
+        [DllImport("user32.dll")]
+        private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct APPBARDATA
+        {
+            public int cbSize;
+            public IntPtr hWnd;
+            public int uCallbackMessage;
+            public int uEdge;
+            public RECT rc;
+            public IntPtr lParam;
+        }
+
         private static IntPtr GetWindowLong(IntPtr hWnd, int nIndex)
         {
             if (IntPtr.Size == 8)
@@ -62,11 +79,23 @@ namespace WeatherWidget.Views
                 return new IntPtr(SetWindowLong32(hWnd, nIndex, dwNewLong.ToInt32()));
         }
 
+        // AppBar messages
+        private const int ABM_GETTASKBARPOS = 5;
+        private const int ABE_LEFT = 0;
+        private const int ABE_TOP = 1;
+        private const int ABE_RIGHT = 2;
+        private const int ABE_BOTTOM = 3;
+
+        // Window positioning
         private static readonly IntPtr HWND_TOPMOST = new(-1);
+        private static readonly IntPtr HWND_NOTOPMOST = new(-2);
+        private static readonly IntPtr HWND_BOTTOM = new(1);
+
         private const uint SWP_NOMOVE = 0x0002;
         private const uint SWP_NOSIZE = 0x0001;
         private const uint SWP_NOACTIVATE = 0x0010;
         private const uint SWP_SHOWWINDOW = 0x0040;
+        private const int SW_SHOWNOACTIVATE = 4;
 
         [StructLayout(LayoutKind.Sequential)]
         public struct RECT { public int Left, Top, Right, Bottom; }
@@ -83,10 +112,12 @@ namespace WeatherWidget.Views
         private readonly DispatcherTimer _refreshTimer;
         private readonly DispatcherTimer _zOrderTimer;
         private readonly DispatcherTimer _themeWatchTimer;
+        private readonly DispatcherTimer _visibilityTimer;
 
         private WeatherFlyout? _currentFlyout;
         private bool _isHovering;
         private bool _isTaskbarDark = true;
+        private int _taskbarEdge = ABE_BOTTOM;
 
         public TaskbarWidget()
         {
@@ -109,9 +140,34 @@ namespace WeatherWidget.Views
             _themeWatchTimer.Tick += (s, e) => UpdateTextColor();
             _themeWatchTimer.Start();
 
-            Application.Current.Deactivated += (s, e) => EnsureWidgetOnTop();
+            // New timer to aggressively keep widget visible
+            _visibilityTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
+            _visibilityTimer.Tick += (s, e) => ForceWidgetVisible();
+            _visibilityTimer.Start();
 
             UpdateTextColor();
+        }
+
+        private void ForceWidgetVisible()
+        {
+            if (!IsLoaded || _data == null) return;
+
+            // Aggressively keep widget visible
+            if (this.Visibility != Visibility.Visible)
+            {
+                this.Visibility = Visibility.Visible;
+            }
+
+            if (this.Opacity < 1.0 && _currentFlyout == null)
+            {
+                this.Opacity = 1.0;
+            }
+
+            var hwnd = new WindowInteropHelper(this).Handle;
+            if (hwnd != IntPtr.Zero)
+            {
+                ShowWindow(hwnd, SW_SHOWNOACTIVATE);
+            }
         }
 
         private void UpdateTextColor()
@@ -146,13 +202,34 @@ namespace WeatherWidget.Views
         {
             var hwnd = new WindowInteropHelper(this).Handle;
 
+            // Set window as tool window to prevent taskbar button
             int exStyle = GetWindowLong(hwnd, GWL_EXSTYLE).ToInt32();
             _ = SetWindowLong(hwnd, GWL_EXSTYLE, new IntPtr(exStyle | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE));
 
+            // Disable window shadow for cleaner taskbar integration
             int disableShadow = 2;
             _ = DwmSetWindowAttribute(hwnd, 2, ref disableShadow, sizeof(int));
 
+            // Detect taskbar position
+            DetectTaskbarPosition();
+
             await LoadData();
+        }
+
+        private void DetectTaskbarPosition()
+        {
+            APPBARDATA abd = new APPBARDATA();
+            abd.cbSize = Marshal.SizeOf(abd);
+            IntPtr result = SHAppBarMessage(ABM_GETTASKBARPOS, ref abd);
+
+            if (result != IntPtr.Zero)
+            {
+                _taskbarEdge = abd.uEdge;
+            }
+            else
+            {
+                _taskbarEdge = ABE_BOTTOM;
+            }
         }
 
         private async Task LoadData()
@@ -184,12 +261,59 @@ namespace WeatherWidget.Views
             if (tray != IntPtr.Zero && GetWindowRect(tray, out RECT trayRect) && GetWindowRect(taskbar, out RECT tbRect))
             {
                 var dpi = VisualTreeHelper.GetDpi(this);
-                double tbHeight = (tbRect.Bottom - tbRect.Top) / dpi.DpiScaleY;
-                double trayLeft = trayRect.Left / dpi.DpiScaleX;
 
-                this.Left = trayLeft - this.ActualWidth - 16;
-                this.Top = (tbRect.Top / dpi.DpiScaleY) + ((tbHeight - this.ActualHeight) / 2);
+                switch (_taskbarEdge)
+                {
+                    case ABE_BOTTOM:
+                        PositionForBottomTaskbar(trayRect, tbRect, dpi);
+                        break;
+                    case ABE_TOP:
+                        PositionForTopTaskbar(trayRect, tbRect, dpi);
+                        break;
+                    case ABE_LEFT:
+                        PositionForLeftTaskbar(trayRect, tbRect, dpi);
+                        break;
+                    case ABE_RIGHT:
+                        PositionForRightTaskbar(trayRect, tbRect, dpi);
+                        break;
+                }
             }
+        }
+
+        private void PositionForBottomTaskbar(RECT trayRect, RECT tbRect, DpiScale dpi)
+        {
+            double tbHeight = (tbRect.Bottom - tbRect.Top) / dpi.DpiScaleY;
+            double trayLeft = trayRect.Left / dpi.DpiScaleX;
+
+            this.Left = trayLeft - this.ActualWidth - 16;
+            this.Top = (tbRect.Top / dpi.DpiScaleY) + ((tbHeight - this.ActualHeight) / 2);
+        }
+
+        private void PositionForTopTaskbar(RECT trayRect, RECT tbRect, DpiScale dpi)
+        {
+            double tbHeight = (tbRect.Bottom - tbRect.Top) / dpi.DpiScaleY;
+            double trayLeft = trayRect.Left / dpi.DpiScaleX;
+
+            this.Left = trayLeft - this.ActualWidth - 16;
+            this.Top = (tbRect.Top / dpi.DpiScaleY) + ((tbHeight - this.ActualHeight) / 2);
+        }
+
+        private void PositionForLeftTaskbar(RECT trayRect, RECT tbRect, DpiScale dpi)
+        {
+            double tbWidth = (tbRect.Right - tbRect.Left) / dpi.DpiScaleX;
+            double trayTop = trayRect.Top / dpi.DpiScaleY;
+
+            this.Left = (tbRect.Left / dpi.DpiScaleX) + ((tbWidth - this.ActualWidth) / 2);
+            this.Top = trayTop - this.ActualHeight - 16;
+        }
+
+        private void PositionForRightTaskbar(RECT trayRect, RECT tbRect, DpiScale dpi)
+        {
+            double tbWidth = (tbRect.Right - tbRect.Left) / dpi.DpiScaleX;
+            double trayTop = trayRect.Top / dpi.DpiScaleY;
+
+            this.Left = (tbRect.Left / dpi.DpiScaleX) + ((tbWidth - this.ActualWidth) / 2);
+            this.Top = trayTop - this.ActualHeight - 16;
         }
 
         private void EnsureWidgetOnTop()
@@ -199,7 +323,11 @@ namespace WeatherWidget.Views
             var hwnd = new WindowInteropHelper(this).Handle;
             if (hwnd == IntPtr.Zero) return;
 
-            if (!_isHovering && _currentFlyout == null)
+            if (_currentFlyout != null && _currentFlyout.IsVisible)
+            {
+                _ = SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW);
+            }
+            else if (!_isHovering)
             {
                 _ = SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW);
             }
@@ -252,9 +380,11 @@ namespace WeatherWidget.Views
             _currentFlyout = new WeatherFlyout(_data, _loc, anchorRect);
             _currentFlyout.Closed += Flyout_Closed;
 
+            // Don't set Topmost on flyout - let it be a normal window
             _currentFlyout.Show();
             _currentFlyout.Activate();
 
+            // Widget stays visible
             EnsureWidgetOnTop();
         }
 
@@ -264,14 +394,8 @@ namespace WeatherWidget.Views
 
             this.Dispatcher.Invoke(() =>
             {
-                this.Show();
-                this.Opacity = 1;
-                this.UpdateLayout();
-
-                // Reload data in case settings changed
-                _loc = null; // Force location refresh
+                _loc = null;
                 Dispatcher.BeginInvoke(new Action(async () => await LoadData()));
-
                 EnsureWidgetOnTop();
             }, DispatcherPriority.Send);
         }
@@ -295,7 +419,6 @@ namespace WeatherWidget.Views
 
         private void OpenSettings()
         {
-            // Settings are now handled within the flyout, so just open the flyout
             if (_data != null && _loc != null)
             {
                 Point topLeftDevice = this.PointToScreen(new Point(0, 0));
