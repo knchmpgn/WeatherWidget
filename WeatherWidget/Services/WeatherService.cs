@@ -57,6 +57,16 @@ namespace WeatherWidget.Services
                 }
 
                 // Daily Forecast (5 items) - EXCLUDING TODAY (indices 1-5)
+                // Use current time to determine if we should show day or night icons for ALL forecast cards
+                DateTime now = DateTime.Now;
+
+                // Get today's sunrise/sunset to determine current day/night status
+                string todaySunrise = (string)json["daily"]!["sunrise"]![0]!;
+                string todaySunset = (string)json["daily"]!["sunset"]![0]!;
+                DateTime sunrise = DateTime.Parse(todaySunrise);
+                DateTime sunset = DateTime.Parse(todaySunset);
+                bool isDayTime = now >= sunrise && now < sunset;
+
                 for (int i = 1; i <= 5; i++)
                 {
                     var time = DateTime.Parse((string)json["daily"]!["time"]![i]!);
@@ -66,11 +76,12 @@ namespace WeatherWidget.Services
                         ? (int)json["daily"]!["precipitation_probability_max"]![i]!
                         : 0;
 
+                    // Use the same day/night status for all forecast cards based on current time
                     data.Daily.Add(new ForecastItem
                     {
                         TimeLabel = time.ToString("ddd", CultureInfo.CurrentCulture),
                         TempLabel = $"{Math.Round((double)json["daily"]!["temperature_2m_max"]![i]!)}° / {Math.Round((double)json["daily"]!["temperature_2m_min"]![i]!)}°",
-                        IconPath = $"/Assets/PNG/{MapCodeToPath(dailyCode, true, dailyWindSpeed)}.png",
+                        IconPath = $"/Assets/PNG/{MapCodeToPath(dailyCode, isDayTime, dailyWindSpeed)}.png",
                         Humidity = precipChance + "%",
                         Wind = Math.Round(dailyWindSpeed) + " mph"
                     });

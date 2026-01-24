@@ -1,4 +1,5 @@
-﻿<Window x:Class="WeatherWidget.Views.WeatherFlyout"
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Window x:Class="WeatherWidget.Views.WeatherFlyout"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:WeatherWidget.Views"
@@ -6,6 +7,7 @@
         SizeToContent="Height"
         WindowStyle="None"
         AllowsTransparency="False"
+        ResizeMode="NoResize"
         Background="#202020"
         Topmost="True"
         Deactivated="Window_Deactivated"
