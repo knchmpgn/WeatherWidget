@@ -1,0 +1,30 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WeatherWidget", "WeatherWidget.csproj", "{86179935-724C-8FEA-DCF0-FE11D8573A42}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WeatherWidget.WinUI", "WinUI\\WeatherWidget.WinUI.csproj", "{5FA5DDA6-F7D9-4D03-97B6-2299B3197965}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{86179935-724C-8FEA-DCF0-FE11D8573A42}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{86179935-724C-8FEA-DCF0-FE11D8573A42}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{86179935-724C-8FEA-DCF0-FE11D8573A42}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{86179935-724C-8FEA-DCF0-FE11D8573A42}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5FA5DDA6-F7D9-4D03-97B6-2299B3197965}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5FA5DDA6-F7D9-4D03-97B6-2299B3197965}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5FA5DDA6-F7D9-4D03-97B6-2299B3197965}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5FA5DDA6-F7D9-4D03-97B6-2299B3197965}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {403F89D7-670C-4CA6-A481-95D230BD2B93}
+	EndGlobalSection
+EndGlobal
