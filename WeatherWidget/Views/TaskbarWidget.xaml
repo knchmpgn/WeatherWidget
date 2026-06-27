@@ -1,0 +1,81 @@
+﻿<Window x:Class="WeatherWidget.Views.TaskbarWidget"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Weather"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ShowInTaskbar="False"
+        Topmost="False"
+        SizeToContent="WidthAndHeight"
+        MinWidth="120"
+        MaxWidth="180"
+        Height="40"
+        WindowStartupLocation="Manual"
+        MouseLeftButtonDown="Widget_Click"
+        Loaded="Window_Loaded"
+        SizeChanged="Window_SizeChanged">
+
+    <Window.Resources />
+
+    <!--
+        NOTE: No OpacityMask on MainBorder.
+        The previous OpacityMask (SolidColorBrush Color="Black" Opacity="1") was a visual no-op
+        (alpha=255 everywhere → multiplier=1.0 → no change), but WPF's software renderer
+        (required for AllowsTransparency="True") must allocate an intermediate render target
+        whenever an OpacityMask is present. That intermediate surface can leave stale
+        non-zero RGB values in areas where no content was drawn, causing a white tint to
+        appear through the transparent window. Removing it eliminates the intermediate surface.
+    -->
+    <Border x:Name="MainBorder"
+            Background="Transparent"
+            BorderThickness="0"
+            CornerRadius="4"
+            Padding="6,2"
+            Cursor="Hand"
+            MouseEnter="Widget_MouseEnter"
+            MouseLeave="Widget_MouseLeave"
+            IsHitTestVisible="True"
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Stretch">
+        <Grid>
+            <!-- Hit-test surface: near-invisible but catches mouse over the entire Border area.
+                 Alpha=1 is imperceptible on a per-pixel alpha surface yet sufficient for hit-testing. -->
+            <Rectangle x:Name="HitTestSurface"
+                       Fill="#01FFFFFF" />
+            <!-- Hover overlay: mimics the Windows 11 taskbar icon hover effect —
+                 a rounded rect with a semi-transparent fill and no border. -->
+            <Border x:Name="HoverOverlay"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    CornerRadius="4"
+                    Opacity="0"
+                    IsHitTestVisible="False" />
+            <!-- Content -->
+            <StackPanel x:Name="ContentPanel" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="13,5" IsHitTestVisible="False">
+                <Image x:Name="WeatherIcon"
+                       Width="24"
+                       Height="24"
+                       Margin="0,0,10,0"
+                       RenderOptions.BitmapScalingMode="HighQuality" />
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock x:Name="TempText"
+                               Text="--°"
+                               FontSize="11"
+                               FontWeight="Bold"
+                               Foreground="White"
+                               FontFamily="Segoe UI Variable Display"
+                               Margin="0,-2,0,0" />
+                    <TextBlock x:Name="ConditionText"
+                               Text="Loading..."
+                               FontSize="10.25"
+                               Foreground="White"
+                               Opacity="0.8"
+                               FontFamily="Segoe UI Variable Display Small"
+                               TextTrimming="CharacterEllipsis"
+                               MaxWidth="100" />
+                </StackPanel>
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>
