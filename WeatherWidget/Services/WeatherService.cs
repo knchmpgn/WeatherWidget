@@ -1,9 +1,12 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
+using WeatherWidget;
 using WeatherWidget.Models;
 
 namespace WeatherWidget.Services
@@ -11,7 +14,7 @@ namespace WeatherWidget.Services
     public class WeatherService
     {
         private const string DegreeSymbol = "\u00B0";
-        private readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(10) };
+        private static readonly HttpClient _http = HttpClients.Instance;
 
         public async Task<WeatherData?> GetWeatherDataAsync(double lat, double lon)
         {
@@ -77,8 +80,59 @@ namespace WeatherWidget.Services
                         Date = time,
                         TimeLabel = time.ToString("t", CultureInfo.CurrentCulture),
                         TempLabel = $"{Math.Round((double)json["hourly"]!["temperature_2m"]![i]!)}{DegreeSymbol}",
-                        IconPath = $"/Assets/PNG/{MapCodeToPath(hourCode, hourIsDay, hourWindSpeed)}.png"
+                        IconPath = $"/Assets/PNG/{MapCodeToPath(hourCode, hourIsDay, hourWindSpeed)}.png",
+                        WeatherCode = hourCode,
+                        Condition = MapCodeToString(hourCode)
                     });
+                }
+
+                // Store all of today's remaining hourly forecast for dynamic widget updates
+                for (int i = 0; i < hourlyCount; i++)
+                {
+                    var ht = DateTime.Parse((string)json["hourly"]!["time"]![i]!);
+                    if (ht.Date == DateTime.Today && ht >= DateTime.Now)
+                    {
+                        int hCode = (int)json["hourly"]!["weather_code"]![i]!;
+                        double hWind = (double)json["hourly"]!["wind_speed_10m"]![i]!;
+                        bool hDay = json["hourly"]!["is_day"]![i] != null && (int)json["hourly"]!["is_day"]![i]! == 1;
+
+                        data.HourlyForecast.Add(new ForecastItem
+                        {
+                            Date = ht,
+                            TimeLabel = ht.ToString("t", CultureInfo.CurrentCulture),
+                            TempLabel = $"{Math.Round((double)json["hourly"]!["temperature_2m"]![i]!)}{DegreeSymbol}",
+                            IconPath = $"/Assets/PNG/{MapCodeToPath(hCode, hDay, hWind)}.png",
+                            WeatherCode = hCode,
+                            Condition = MapCodeToString(hCode)
+                        });
+                    }
+                }
+
+                // Compute predominant daily weather codes from hourly data
+                // (more representative than Open-Meteo's "most severe" daily values)
+                var predominantDailyCodes = new Dictionary<string, int>();
+                if (hourlyTimes != null)
+                {
+                    var hourlyCodesByDate = new Dictionary<string, List<int>>();
+                    for (int h = 0; h < hourlyTimes.Count; h++)
+                    {
+                        var hourDate = DateTime.Parse((string)json["hourly"]!["time"]![h]!);
+                        string dateKey = hourDate.ToString("yyyy-MM-dd");
+                        if (!hourlyCodesByDate.ContainsKey(dateKey))
+                            hourlyCodesByDate[dateKey] = [];
+                        hourlyCodesByDate[dateKey].Add((int)json["hourly"]!["weather_code"]![h]!);
+                    }
+
+                    for (int di = 1; di <= 5; di++)
+                    {
+                        var dateKey = DateTime.Parse((string)json["daily"]!["time"]![di]!).ToString("yyyy-MM-dd");
+                        if (hourlyCodesByDate.TryGetValue(dateKey, out var codes) && codes.Count > 0)
+                        {
+                            predominantDailyCodes[dateKey] = codes.GroupBy(c => c)
+                                .OrderByDescending(g => g.Count())
+                                .First().Key;
+                        }
+                    }
                 }
 
                 // Daily Forecast (5 items) - EXCLUDING TODAY (indices 1-5)
@@ -86,7 +140,10 @@ namespace WeatherWidget.Services
                 for (int i = 1; i <= 5; i++)
                 {
                     var time = DateTime.Parse((string)json["daily"]!["time"]![i]!);
-                    int dailyCode = (int)json["daily"]!["weather_code"]![i]!;
+                    string dateKey = time.ToString("yyyy-MM-dd");
+                    int dailyCode = predominantDailyCodes.TryGetValue(dateKey, out var predCode)
+                        ? predCode
+                        : (int)json["daily"]!["weather_code"]![i]!;
                     double dailyWindSpeed = (double)json["daily"]!["wind_speed_10m_max"]![i]!;
                     int precipChance = json["daily"]!["precipitation_probability_max"]![i] != null
                         ? (int)json["daily"]!["precipitation_probability_max"]![i]!

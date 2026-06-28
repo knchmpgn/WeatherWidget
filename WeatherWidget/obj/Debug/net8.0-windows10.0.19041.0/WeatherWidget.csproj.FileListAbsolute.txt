@@ -28,3 +28,4 @@ C:\Users\Nick\Desktop\WeatherWidget\WeatherWidget\obj\Debug\net8.0-windows10.0.1
 C:\Users\Nick\Desktop\WeatherWidget\WeatherWidget\obj\Debug\net8.0-windows10.0.19041.0\WeatherWidget.pdb
 C:\Users\Nick\Desktop\WeatherWidget\WeatherWidget\obj\Debug\net8.0-windows10.0.19041.0\WeatherWidget.genruntimeconfig.cache
 C:\Users\Nick\Desktop\WeatherWidget\WeatherWidget\obj\Debug\net8.0-windows10.0.19041.0\ref\WeatherWidget.dll
+C:\Users\Nick\Desktop\WeatherWidget\WeatherWidget\obj\Debug\net8.0-windows10.0.19041.0\WeatherWidget.sourcelink.json

@@ -4,13 +4,14 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
+using WeatherWidget;
 using WeatherWidget.Models;
 
 namespace WeatherWidget.Services
 {
     public class GeocodingService
     {
-        private readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(8) };
+        private static readonly HttpClient _http = HttpClients.Instance;
 
         // Open-Meteo geocoding — free, no API key required.
         private const string BaseUrl = "https://geocoding-api.open-meteo.com/v1/search";

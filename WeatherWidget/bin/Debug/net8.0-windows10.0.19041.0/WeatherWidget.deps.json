@@ -10,13 +10,13 @@
         "dependencies": {
           "Newtonsoft.Json": "13.0.4",
           "WPF-UI": "4.2.0",
-          "runtimepack.Microsoft.Windows.SDK.NET.Ref": "10.0.19041.57"
+          "runtimepack.Microsoft.Windows.SDK.NET.Ref": "10.0.19041.56"
         },
         "runtime": {
           "WeatherWidget.dll": {}
         }
       },
-      "runtimepack.Microsoft.Windows.SDK.NET.Ref/10.0.19041.57": {
+      "runtimepack.Microsoft.Windows.SDK.NET.Ref/10.0.19041.56": {
         "runtime": {
           "Microsoft.Windows.SDK.NET.dll": {
             "assemblyVersion": "10.0.19041.38",
@@ -63,7 +63,7 @@
       "serviceable": false,
       "sha512": ""
     },
-    "runtimepack.Microsoft.Windows.SDK.NET.Ref/10.0.19041.57": {
+    "runtimepack.Microsoft.Windows.SDK.NET.Ref/10.0.19041.56": {
       "type": "runtimepack",
       "serviceable": false,
       "sha512": ""

@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows;
@@ -117,5 +118,10 @@ namespace WeatherWidget
                 // Swallow logging errors to avoid secondary crashes.
             }
         }
+    }
+
+    internal static class HttpClients
+    {
+        public static readonly HttpClient Instance = new() { Timeout = TimeSpan.FromSeconds(10) };
     }
 }

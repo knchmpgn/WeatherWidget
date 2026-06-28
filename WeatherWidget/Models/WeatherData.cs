@@ -11,6 +11,7 @@ namespace WeatherWidget.Models
         public string Condition { get; set; } = "Unknown";
         public string IconCode { get; set; } = "day_cloudy";
         public List<ForecastItem> Hourly { get; set; } = [];
+        public List<ForecastItem> HourlyForecast { get; set; } = [];
         public List<ForecastItem> Daily { get; set; } = [];
 
         public int CurrentHumidity { get; set; }
@@ -35,6 +36,8 @@ namespace WeatherWidget.Models
         public string IconPath { get; set; } = "";
         public string Humidity { get; set; } = "";
         public string Wind { get; set; } = "";
+        public int WeatherCode { get; set; } = -1;
+        public string Condition { get; set; } = "";
     }
 
     public class LocationData

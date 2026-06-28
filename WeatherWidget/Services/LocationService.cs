@@ -3,13 +3,14 @@ using System.Diagnostics;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
+using WeatherWidget;
 using WeatherWidget.Models;
 
 namespace WeatherWidget.Services
 {
     public class LocationService
     {
-        private readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(10) };
+        private static readonly HttpClient _http = HttpClients.Instance;
 
         public async Task<LocationData> GetCurrentLocationAsync()
         {

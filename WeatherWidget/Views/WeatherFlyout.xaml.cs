@@ -38,8 +38,26 @@ namespace WeatherWidget.Views
         private double _initialBottom;
         private readonly bool _startInSettings;
         private bool _isClosing;
+        public bool SettingsWereSaved { get; set; }
         private readonly GeocodingService _geocodingService = new();
         private CancellationTokenSource? _geocodeCts;
+
+        // Reusable brush instances to avoid reallocation on every theme change
+        private readonly SolidColorBrush _primaryTextBrush = new();
+        private readonly SolidColorBrush _cardBorderBrush = new();
+        private readonly SolidColorBrush _dividerBrush = new();
+        private readonly SolidColorBrush _flyoutBackgroundBrush = new();
+        private readonly SolidColorBrush _inputBackgroundBrush = new();
+        private readonly SolidColorBrush _inputBorderBrush = new();
+        private readonly SolidColorBrush _inputHoverBrush = new();
+        private readonly SolidColorBrush _inputFocusedBrush = new();
+        private readonly SolidColorBrush _glowColorBrush = new();
+        private readonly LinearGradientBrush _cardBackgroundBrush = new()
+        {
+            StartPoint = new Point(0, 0),
+            EndPoint = new Point(0, 1),
+            GradientStops = { new GradientStop(), new GradientStop() }
+        };
 
         public WeatherFlyout(WeatherData data, LocationData loc, Rect anchorRect, bool startInSettings = false)
         {
@@ -472,37 +490,45 @@ namespace WeatherWidget.Views
             Color glowColor,
             bool isDarkMode)
         {
-            this.Resources["PrimaryTextBrush"] = new SolidColorBrush(textColor);
-            this.Resources["SecondaryTextBrush"] = new SolidColorBrush(textColor);
-            this.Resources["CardBackgroundBrush"] = CreateAcrylicBrush(cardBaseColor, isDarkMode ? (byte)175 : (byte)200, isDarkMode ? (byte)200 : (byte)220);
-            this.Resources["CardBorderBrush"] = new SolidColorBrush(cardBorderColor);
-            this.Resources["DividerBrush"] = new SolidColorBrush(dividerColor);
-            byte flyoutAlpha = isDarkMode ? (byte)26 : (byte)38; // subtle tint to preserve readability
-            var flyoutTint = Color.FromArgb(flyoutAlpha, flyoutBaseColor.R, flyoutBaseColor.G, flyoutBaseColor.B);
-            var flyoutBrush = new SolidColorBrush(flyoutTint);
-            flyoutBrush.Freeze();
-            this.Resources["FlyoutBackgroundBrush"] = flyoutBrush;
+            _primaryTextBrush.Color = textColor;
+            this.Resources["PrimaryTextBrush"] = _primaryTextBrush;
+            this.Resources["SecondaryTextBrush"] = _primaryTextBrush;
+
+            byte topAlpha = isDarkMode ? (byte)175 : (byte)200;
+            byte bottomAlpha = isDarkMode ? (byte)200 : (byte)220;
+            _cardBackgroundBrush.GradientStops[0].Color = Color.FromArgb(topAlpha, cardBaseColor.R, cardBaseColor.G, cardBaseColor.B);
+            _cardBackgroundBrush.GradientStops[1].Color = Color.FromArgb(bottomAlpha, cardBaseColor.R, cardBaseColor.G, cardBaseColor.B);
+            this.Resources["CardBackgroundBrush"] = _cardBackgroundBrush;
+
+            _cardBorderBrush.Color = cardBorderColor;
+            this.Resources["CardBorderBrush"] = _cardBorderBrush;
+
+            _dividerBrush.Color = dividerColor;
+            this.Resources["DividerBrush"] = _dividerBrush;
+
+            byte flyoutAlpha = isDarkMode ? (byte)26 : (byte)38;
+            _flyoutBackgroundBrush.Color = Color.FromArgb(flyoutAlpha, flyoutBaseColor.R, flyoutBaseColor.G, flyoutBaseColor.B);
+            this.Resources["FlyoutBackgroundBrush"] = _flyoutBackgroundBrush;
 
             var inputBg = OffsetColor(cardBaseColor, isDarkMode ? 10 : 20);
             var inputBorder = OffsetColor(cardBorderColor, isDarkMode ? 35 : 20);
             var inputHover = OffsetColor(cardBorderColor, isDarkMode ? 60 : 45);
             var inputFocused = OffsetColor(glowColor, isDarkMode ? -10 : -20);
 
-            this.Resources["InputBackgroundBrush"] = new SolidColorBrush(inputBg);
-            this.Resources["InputBorderBrush"] = new SolidColorBrush(inputBorder);
-            this.Resources["InputHoverBrush"] = new SolidColorBrush(inputHover);
-            this.Resources["InputFocusedBrush"] = new SolidColorBrush(inputFocused);
-            
-            this.Resources["GlowColorBrush"] = new SolidColorBrush(glowColor);
-        }
+            _inputBackgroundBrush.Color = inputBg;
+            this.Resources["InputBackgroundBrush"] = _inputBackgroundBrush;
 
-        private static LinearGradientBrush CreateAcrylicBrush(Color baseColor, byte topAlpha, byte bottomAlpha)
-        {
-            var top = Color.FromArgb(topAlpha, baseColor.R, baseColor.G, baseColor.B);
-            var bottom = Color.FromArgb(bottomAlpha, baseColor.R, baseColor.G, baseColor.B);
-            var brush = new LinearGradientBrush(top, bottom, 90);
-            brush.Freeze();
-            return brush;
+            _inputBorderBrush.Color = inputBorder;
+            this.Resources["InputBorderBrush"] = _inputBorderBrush;
+
+            _inputHoverBrush.Color = inputHover;
+            this.Resources["InputHoverBrush"] = _inputHoverBrush;
+
+            _inputFocusedBrush.Color = inputFocused;
+            this.Resources["InputFocusedBrush"] = _inputFocusedBrush;
+
+            _glowColorBrush.Color = glowColor;
+            this.Resources["GlowColorBrush"] = _glowColorBrush;
         }
 
         private static Color OffsetColor(Color color, int delta)
@@ -544,9 +570,19 @@ namespace WeatherWidget.Views
         {
             var workArea = SystemParameters.WorkArea;
 
-            // Windows 11 Quick Settings has ~16px gap from taskbar
             double targetLeft = _anchorRect.Left + (_anchorRect.Width - this.ActualWidth) / 2;
-            double targetTop = _anchorRect.Top - this.ActualHeight - 16;
+            double targetTop;
+
+            // Choose direction: prefer opening above the anchor, flip below if insufficient room
+            double spaceAbove = _anchorRect.Top - workArea.Top;
+            double spaceBelow = workArea.Bottom - _anchorRect.Bottom;
+
+            if (spaceAbove >= this.ActualHeight + 16)
+                targetTop = _anchorRect.Top - this.ActualHeight - 16;
+            else if (spaceBelow >= this.ActualHeight + 16)
+                targetTop = _anchorRect.Bottom + 16;
+            else
+                targetTop = _anchorRect.Top - this.ActualHeight - 16;
 
             if (targetLeft < workArea.Left + 10)
                 targetLeft = workArea.Left + 10;
@@ -968,6 +1004,7 @@ namespace WeatherWidget.Views
                     StartupService.SetEnabled(settings.StartWithWindows);
                     AppSettingsStore.Save(settings);
 
+                    SettingsWereSaved = true;
                     _isClosing = true;
                     _settingsVisible = false;
 
