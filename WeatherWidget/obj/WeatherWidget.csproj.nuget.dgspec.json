@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\Nick\\Desktop\\WeatherWidget\\WeatherWidget\\WeatherWidget.csproj": {}
+    "C:\\Users\\Nick\\Repositories\\WeatherWidget\\WeatherWidget\\WeatherWidget.csproj": {}
   },
   "projects": {
-    "C:\\Users\\Nick\\Desktop\\WeatherWidget\\WeatherWidget\\WeatherWidget.csproj": {
+    "C:\\Users\\Nick\\Repositories\\WeatherWidget\\WeatherWidget\\WeatherWidget.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\Nick\\Desktop\\WeatherWidget\\WeatherWidget\\WeatherWidget.csproj",
+        "projectUniqueName": "C:\\Users\\Nick\\Repositories\\WeatherWidget\\WeatherWidget\\WeatherWidget.csproj",
         "projectName": "WeatherWidget",
-        "projectPath": "C:\\Users\\Nick\\Desktop\\WeatherWidget\\WeatherWidget\\WeatherWidget.csproj",
+        "projectPath": "C:\\Users\\Nick\\Repositories\\WeatherWidget\\WeatherWidget\\WeatherWidget.csproj",
         "packagesPath": "C:\\Users\\Nick\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\Nick\\Desktop\\WeatherWidget\\WeatherWidget\\obj\\",
+        "outputPath": "C:\\Users\\Nick\\Repositories\\WeatherWidget\\WeatherWidget\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

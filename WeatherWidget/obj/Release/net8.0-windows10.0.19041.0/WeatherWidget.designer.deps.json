@@ -1,0 +1,61 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v8.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v8.0": {
+      "Newtonsoft.Json/13.0.4": {
+        "runtime": {
+          "lib/net6.0/Newtonsoft.Json.dll": {
+            "assemblyVersion": "13.0.0.0",
+            "fileVersion": "13.0.4.30916"
+          }
+        }
+      },
+      "WPF-UI/4.2.0": {
+        "dependencies": {
+          "WPF-UI.Abstractions": "4.2.0"
+        },
+        "runtime": {
+          "lib/net8.0-windows7.0/Wpf.Ui.dll": {
+            "assemblyVersion": "4.2.0.0",
+            "fileVersion": "4.2.0.0"
+          }
+        }
+      },
+      "WPF-UI.Abstractions/4.2.0": {
+        "runtime": {
+          "lib/net8.0/Wpf.Ui.Abstractions.dll": {
+            "assemblyVersion": "4.2.0.0",
+            "fileVersion": "4.2.0.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "Newtonsoft.Json/13.0.4": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-pdgNNMai3zv51W5aq268sujXUyx7SNdE2bj1wZcWjAQrKMFZV260lbqYop1d2GM67JI1huLRwxo9ZqnfF/lC6A==",
+      "path": "newtonsoft.json/13.0.4",
+      "hashPath": "newtonsoft.json.13.0.4.nupkg.sha512"
+    },
+    "WPF-UI/4.2.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-cLJCqIYGtbSU8da9UnPV83SU5XttiM+BEZWW/jLSLjjmBvK2s54oDcO2wP36GEVgiXu5/QXJHlgXk0f14Cvw3g==",
+      "path": "wpf-ui/4.2.0",
+      "hashPath": "wpf-ui.4.2.0.nupkg.sha512"
+    },
+    "WPF-UI.Abstractions/4.2.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-N4/ODw2F7yniiaEO6aEaxFC8aMJDJTGoeNNv3LLXFJs+qY2Flu9fMqFrRfcCFTk4ZKg1+guUB6Y0QKi6AGt88w==",
+      "path": "wpf-ui.abstractions/4.2.0",
+      "hashPath": "wpf-ui.abstractions.4.2.0.nupkg.sha512"
+    }
+  }
+}

@@ -173,7 +173,7 @@
     </Window.Resources>
 
     <Border x:Name="MainBorder"
-            Background="{DynamicResource FlyoutBackgroundBrush}"
+            Background="Transparent"
             BorderThickness="0"
             Padding="24">
         <Border.RenderTransform>

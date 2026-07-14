@@ -3,6 +3,7 @@ using System;
 using System.Globalization;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Threading;
 using System.Threading.Tasks;
@@ -10,6 +11,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
@@ -29,6 +31,14 @@ namespace WeatherWidget.Views
     [SupportedOSPlatform("windows")]
     public partial class WeatherFlyout : FluentWindow
     {
+        // DWM Mica backdrop interop
+        [DllImport("dwmapi.dll")]
+        private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
+
+        private const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
+        private const int DWMWA_SYSTEMBACKDROP_TYPE = 38;
+        private const int DWMSBT_MAINWINDOW = 2; // Mica
+
         private readonly WeatherData _data;
         private readonly LocationData _loc;
         private bool _isDarkMode;
@@ -494,8 +504,8 @@ namespace WeatherWidget.Views
             this.Resources["PrimaryTextBrush"] = _primaryTextBrush;
             this.Resources["SecondaryTextBrush"] = _primaryTextBrush;
 
-            byte topAlpha = isDarkMode ? (byte)175 : (byte)200;
-            byte bottomAlpha = isDarkMode ? (byte)200 : (byte)220;
+            byte topAlpha = isDarkMode ? (byte)100 : (byte)120;
+            byte bottomAlpha = isDarkMode ? (byte)130 : (byte)150;
             _cardBackgroundBrush.GradientStops[0].Color = Color.FromArgb(topAlpha, cardBaseColor.R, cardBaseColor.G, cardBaseColor.B);
             _cardBackgroundBrush.GradientStops[1].Color = Color.FromArgb(bottomAlpha, cardBaseColor.R, cardBaseColor.G, cardBaseColor.B);
             this.Resources["CardBackgroundBrush"] = _cardBackgroundBrush;
@@ -541,6 +551,9 @@ namespace WeatherWidget.Views
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
+            // Apply Mica backdrop via DWM
+            ApplyMicaBackdrop();
+
             PositionWindow();
             _initialBottom = this.Top + this.ActualHeight;
 
@@ -556,6 +569,28 @@ namespace WeatherWidget.Views
             {
                 _allowDeactivate = true;
             }), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+        }
+
+        private void ApplyMicaBackdrop()
+        {
+            try
+            {
+                var hwnd = new WindowInteropHelper(this).Handle;
+                if (hwnd == IntPtr.Zero)
+                    return;
+
+                // Set dark/light mode
+                int darkMode = _isDarkMode ? 1 : 0;
+                DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ref darkMode, sizeof(int));
+
+                // Apply Mica backdrop
+                int backdropType = DWMSBT_MAINWINDOW;
+                DwmSetWindowAttribute(hwnd, DWMWA_SYSTEMBACKDROP_TYPE, ref backdropType, sizeof(int));
+            }
+            catch
+            {
+                // Silently fail if DWM APIs are not available
+            }
         }
 
         private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
