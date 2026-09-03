@@ -75,7 +75,13 @@ namespace WeatherWidget.Views
         [DllImport("user32.dll")]
         private static extern bool PostMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
 
+        [DllImport("user32.dll")]
+        private static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
+
+        private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+
         private const uint MONITOR_DEFAULTTOPRIMARY = 0;
+        private const uint MONITORINFOF_PRIMARY = 0x1;
 
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
         private struct MONITORINFO
@@ -393,7 +399,7 @@ namespace WeatherWidget.Views
             // focus changes occur. Instead, we manage z-order independently using HWND_TOPMOST
             // and reactive SetWindowPos calls based on WinEventHook notifications.
             _myHwnd = hwnd;
-            _taskbarHwnd = FindWindow("Shell_TrayWnd", null);
+            _taskbarHwnd = FindPrimaryTaskbar();
             _winEventDelegate = TaskbarWinEventProc;    // Set before registering any hook
 
             if (_taskbarHwnd != IntPtr.Zero)
@@ -453,6 +459,59 @@ namespace WeatherWidget.Views
             IntPtr result = SHAppBarMessage(ABM_GETTASKBARPOS, ref abd);
             _taskbarEdge = result != IntPtr.Zero ? abd.uEdge : ABE_BOTTOM;
             _cachedIsCentered = null;
+        }
+
+        /// <summary>
+        /// Resolves the primary-monitor taskbar ("Shell_TrayWnd"). Multi-monitor tray mods
+        /// (e.g. WindHawk's taskbar-on-all-monitors style mods) can create or reorder
+        /// additional windows so that a plain FindWindow("Shell_TrayWnd", null) — which only
+        /// ever returns the first Z-order match — intermittently resolves to a secondary
+        /// monitor's taskbar instead of the primary one. That, in turn, is why the widget was
+        /// observed jumping to the secondary monitor, especially right after the flyout
+        /// triggers a Z-order/foreground shuffle. This walks every top-level window with that
+        /// class name and returns the one that actually sits on the primary monitor.
+        /// </summary>
+        private static IntPtr FindPrimaryTaskbar()
+        {
+            IntPtr primary = IntPtr.Zero;
+            IntPtr fallback = IntPtr.Zero;
+
+            EnumWindows((hWnd, lParam) =>
+            {
+                var buffer = new StringBuilder(256);
+                GetClassName(hWnd, buffer, buffer.Capacity);
+                if (!string.Equals(buffer.ToString(), "Shell_TrayWnd", StringComparison.Ordinal))
+                    return true;
+
+                if (fallback == IntPtr.Zero)
+                    fallback = hWnd;
+
+                IntPtr monitor = MonitorFromWindow(hWnd, MONITOR_DEFAULTTOPRIMARY);
+                if (monitor != IntPtr.Zero)
+                {
+                    var mi = new MONITORINFO { cbSize = Marshal.SizeOf(typeof(MONITORINFO)) };
+                    if (GetMonitorInfo(monitor, ref mi) && (mi.dwFlags & MONITORINFOF_PRIMARY) != 0)
+                    {
+                        primary = hWnd;
+                        return false; // found it, stop enumerating
+                    }
+                }
+
+                return true;
+            }, IntPtr.Zero);
+
+            // Fall back to whatever Shell_TrayWnd we found (or Zero) if none reported as
+            // being on the primary monitor — better to degrade to prior behavior than fail.
+            return primary != IntPtr.Zero ? primary : fallback;
+        }
+
+        private static bool IsWindowOnPrimaryMonitor(IntPtr hWnd)
+        {
+            IntPtr monitor = MonitorFromWindow(hWnd, MONITOR_DEFAULTTOPRIMARY);
+            if (monitor == IntPtr.Zero) return false;
+
+            var mi = new MONITORINFO { cbSize = Marshal.SizeOf(typeof(MONITORINFO)) };
+            return GetMonitorInfo(monitor, ref mi) && (mi.dwFlags & MONITORINFOF_PRIMARY) != 0;
         }
 
         private async Task LoadData()
@@ -758,8 +817,18 @@ namespace WeatherWidget.Views
         private void PositionWidget()
         {
             IntPtr taskbar = _taskbarHwnd;
-            if (taskbar == IntPtr.Zero)
-                taskbar = FindWindow("Shell_TrayWnd", null);
+
+            // Re-validate that our cached taskbar handle is still the primary-monitor one.
+            // Multi-monitor tray mods can reorder/recreate Shell_TrayWnd windows, especially
+            // right around flyout open/close; if the cached handle no longer resolves to the
+            // primary monitor (or is stale), re-resolve it rather than silently positioning
+            // the widget on whatever monitor that handle now belongs to.
+            if (taskbar == IntPtr.Zero || !IsWindowOnPrimaryMonitor(taskbar))
+            {
+                taskbar = FindPrimaryTaskbar();
+                if (taskbar != IntPtr.Zero)
+                    _taskbarHwnd = taskbar;
+            }
             if (taskbar == IntPtr.Zero) return;
 
             var dpi = VisualTreeHelper.GetDpi(this);
@@ -900,7 +969,7 @@ namespace WeatherWidget.Views
 
         private bool IsTaskbarCurrentlyVisible()
         {
-            IntPtr taskbar = FindWindow("Shell_TrayWnd", null);
+            IntPtr taskbar = FindPrimaryTaskbar();
             if (taskbar == IntPtr.Zero) return true;
             if (!IsWindowVisible(taskbar)) return false;
             if (!GetWindowRect(taskbar, out RECT taskbarRect)) return true;
@@ -941,6 +1010,15 @@ namespace WeatherWidget.Views
                 _ = GetClassName(fg, _classNameBuffer, _classNameBuffer.Capacity);
                 string cls = _classNameBuffer.ToString();
                 if (cls is "Progman" or "WorkerW" or "Shell_TrayWnd") return false;
+
+                // Exclude Windows 11 shell XAML island flyouts (Quick Settings / network /
+                // volume / calendar / notification center, etc.). These are hosted in
+                // explorer.exe as a "XamlExplorerHostIslandWindow" that is sized to cover the
+                // entire monitor (so its own light-dismiss area can catch outside clicks) even
+                // though only a small flyout is visually painted. Without this exclusion,
+                // opening any of these flyouts satisfies the 95% monitor-coverage heuristic
+                // below and the widget is incorrectly hidden as if a fullscreen app launched.
+                if (cls == "XamlExplorerHostIslandWindow") return false;
 
                 if (!GetWindowRect(fg, out RECT windowRect)) return false;
 

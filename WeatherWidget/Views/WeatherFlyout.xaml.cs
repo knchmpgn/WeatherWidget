@@ -46,6 +46,7 @@ namespace WeatherWidget.Views
         private readonly Rect _anchorRect;
         private bool _settingsVisible;
         private double _initialBottom;
+        private bool _anchoredAbove = true;
         private readonly bool _startInSettings;
         private bool _isClosing;
         public bool SettingsWereSaved { get; set; }
@@ -595,10 +596,16 @@ namespace WeatherWidget.Views
 
         private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
         {
-            if (_initialBottom > 0 && e.HeightChanged)
+            if (!e.HeightChanged) return;
+
+            if (_anchoredAbove && _initialBottom > 0)
             {
+                // Anchored above the taskbar/widget: keep the bottom edge fixed so the
+                // flyout still "sits" against the anchor as its height shrinks/grows.
                 this.Top = _initialBottom - e.NewSize.Height;
             }
+            // else: anchored below the anchor — top edge is already fixed (this.Top
+            // untouched), which is the correct pin point in that orientation.
         }
 
         private void PositionWindow()
@@ -613,11 +620,20 @@ namespace WeatherWidget.Views
             double spaceBelow = workArea.Bottom - _anchorRect.Bottom;
 
             if (spaceAbove >= this.ActualHeight + 16)
+            {
                 targetTop = _anchorRect.Top - this.ActualHeight - 16;
+                _anchoredAbove = true;
+            }
             else if (spaceBelow >= this.ActualHeight + 16)
+            {
                 targetTop = _anchorRect.Bottom + 16;
+                _anchoredAbove = false;
+            }
             else
+            {
                 targetTop = _anchorRect.Top - this.ActualHeight - 16;
+                _anchoredAbove = true;
+            }
 
             if (targetLeft < workArea.Left + 10)
                 targetLeft = workArea.Left + 10;
