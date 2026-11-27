@@ -30,3 +30,18 @@ WeatherWidget/
 
 - Windows 10/11
 - .NET 8 SDK or Runtime
+
+## Disclaimer
+
+⚠️ **WARNING: Vibe-Coded Software**
+
+This application was developed entirely via vibe coding and should be considered experimental.
+
+- Tested by exactly one person
+- Tested on exactly one machine
+- Tested **only** with a **left-aligned Windows taskbar**
+- No guarantees are made regarding compatibility with other taskbar positions, monitor layouts, DPI scaling configurations, Windows versions, or hardware setups
+
+If something breaks, looks wrong, appears in the wrong place, or causes your taskbar to question its life choices, that's unfortunately within the realm of possibility.
+
+Bug reports, fixes, and pull requests are welcome!
