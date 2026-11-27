@@ -7,6 +7,8 @@ A lightweight Windows taskbar weather widget built with .NET 8 that displays cur
 - Real-time weather display
 - Modern .NET 8 application architecture
 - FluentUI / WinUI design aesthetic
+- Adaptive Theme
+- Support for Mica, Mica Alt, and Acrylic material effects
 - Fully portable
 
 ## Screenshots
