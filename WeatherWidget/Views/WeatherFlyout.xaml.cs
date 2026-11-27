@@ -53,6 +53,7 @@ namespace WeatherWidget.Views
         private readonly SolidColorBrush _inputBorderBrush = new();
         private readonly SolidColorBrush _inputHoverBrush = new();
         private readonly SolidColorBrush _inputFocusedBrush = new();
+        private readonly SolidColorBrush _checkBoxCheckedBrush = new();
         private readonly SolidColorBrush _dropdownBackgroundBrush = new();
         private readonly SolidColorBrush _dropdownForegroundBrush = new();
         private readonly SolidColorBrush _dropdownBorderBrush = new();
@@ -490,6 +491,32 @@ namespace WeatherWidget.Views
             translate.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(targetY, TimeSpan.FromMilliseconds(durationMs)) { EasingFunction = ease });
         }
 
+        private static Color GetSystemAccentColor()
+        {
+            try
+            {
+                // Try to get the accent color from Windows registry (Windows 10/11 apps setting)
+                using var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Explorer\Accent");
+                object? value = key?.GetValue("AccentColorMenu");
+                if (value is int argbValue)
+                {
+                    // The value is stored as AABBGGRR in the registry, but should be treated as ARGB
+                    byte a = (byte)((argbValue >> 24) & 0xFF);
+                    byte b = (byte)((argbValue >> 16) & 0xFF);
+                    byte g = (byte)((argbValue >> 8) & 0xFF);
+                    byte r = (byte)(argbValue & 0xFF);
+                    return Color.FromArgb(255, r, g, b);
+                }
+            }
+            catch
+            {
+                // If accent color retrieval fails, fall back to default blue
+            }
+
+            // Fallback to default Windows blue accent color
+            return Color.FromRgb(0, 120, 212);
+        }
+
         private void UpdateThemeResources(
             Color textColor,
             Color cardBaseColor,
@@ -535,6 +562,10 @@ namespace WeatherWidget.Views
 
             _inputFocusedBrush.Color = inputFocused;
             this.Resources["InputFocusedBrush"] = _inputFocusedBrush;
+
+            // Set checkbox brush to system accent color
+            _checkBoxCheckedBrush.Color = GetSystemAccentColor();
+            this.Resources["CheckBoxCheckedBrush"] = _checkBoxCheckedBrush;
 
             // Keep ComboBox popup colors synchronized with the active flyout theme.
             // Popup content is hosted in a separate window, so the ComboBox template
